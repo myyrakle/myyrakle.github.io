@@ -11,6 +11,8 @@ tags = ["showcase", "markdown", "katex"]
 katex = true
 +++
 
+![dd](/images/bonobono.jpg)
+
 Terminus supports [$\KaTeX$](https://katex.org/), a fast, easy-to-use
 JavaScript library for TeX math rendering on the Web.
 
