@@ -1,5 +1,5 @@
 # The URL the site will be built for
-base_url = "https://example.com"
+base_url = "https://myyrakle.github.io"
 
 # Use the terminus theme
 theme = "terminus"
