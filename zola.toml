@@ -5,7 +5,7 @@ base_url = "https://myyrakle.github.io"
 theme = "terminus"
 
 title = "myyrakle's note"
-description = "s\\w tech mirror page"
+description = "dev blog"
 author = "myyrakle"
 
 # Whether to automatically compile all Sass files in the sass directory
