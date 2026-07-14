@@ -1,0 +1,22 @@
+<dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>

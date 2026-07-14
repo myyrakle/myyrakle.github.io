@@ -14,6 +14,7 @@
     <link rel="preload" href="{{ get_url(path="fonts/FiraCode-Regular.woff2") }}" as="font" type="font/woff2" crossorigin="anonymous">
     <link rel="preload" href="{{ get_url(path="fonts/FiraCode-Bold.woff2") }}" as="font" type="font/woff2" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ get_url(path="css/style.css", cachebust=true) }}">
+    <link rel="stylesheet" href="{{ get_url(path="css/search-overlay.css", cachebust=true) }}">
     {%- if page.extra.stylesheets or section.extra.stylesheets %}
     {%- for stylesheet in page.extra.stylesheets | default(value=section.extra.stylesheets) %}
     <link rel="stylesheet" href="{{ get_url(path=stylesheet, cachebust=true) }}">
@@ -34,6 +35,7 @@
     {%- if config.extra.close_responsive_menu_on_resize %}
     <script src="{{ get_url(path="js/auto-close-popover-on-resize.js", cachebust=true) }}" defer></script>
     {%- endif %}
+    <script src="{{ get_url(path="js/search-overlay.js", cachebust=true) }}" defer></script>
     {%- if config_macros::get(setting="copy_button", default_global_value=false) == "true" %}
     <script src="{{ get_url(path="js/copy-code-to-clipboard.js", cachebust=true) }}" defer></script>
     {%- endif %}
@@ -168,6 +170,7 @@
         {%- endblock -%}
         {%- endfilter -%}{%- endfilter %}
     </footer>
+    {% include "partials/search_overlay.html" %}
 </body>
 
 </html>

@@ -1,5 +1,6 @@
 # The URL the site will be built for
 base_url = "https://myyrakle.github.io"
+default_language = "ko"
 
 # Use the terminus theme
 theme = "terminus"
@@ -20,6 +21,9 @@ generate_feeds = true
 taxonomies = [
     { name = "tags", feed = true, paginate_by = 20 },
 ]
+
+[search]
+index_format = "elasticlunr_json"
 
 [markdown]
 render_emoji = true

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{%- block title -%}
+Search | {{ config.title }}
+{%- endblock -%}
+
+{%- block description -%}
+<meta name="description" content="Search {{ config.title }}">
+{%- endblock -%}
+
+{%- block robots -%}
+<meta name="robots" content="noindex, follow">
+{%- endblock -%}
+
+{%- block main -%}
+{%- filter indent -%}{%- filter indent -%}
+<article
+    class="post content search-page zola-search"
+    data-search-root
+    data-search-index-url="/search_index.ko.json"
+    data-search-library-url="/elasticlunr.min.js"
+>
+    <header>
+        <h1>Search</h1>
+    </header>
+    <form class="zola-search-form" data-search-form role="search">
+        <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+    </form>
+    <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+    <ol class="zola-search-results" data-search-results></ol>
+</article>
+{%- endfilter -%}{%- endfilter -%}
+{%- endblock -%}
