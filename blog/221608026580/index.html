@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[Rust] 스레드 간의 데이터 공유 | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/221608026580/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[Rust] 스레드 간의 데이터 공유">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/221608026580/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-07-24T01:57:20.822517178+00:00">
+    <meta property="article:published_time" content="2019-08-07T00:00:00+00:00">
+    <meta property="article:tag" content="Rust">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/221608026580/">[Rust] 스레드 간의 데이터 공유</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2019-08-07T00:00:00+00:00"><time datetime="2019-08-07T00:00:00+00:00">2019.08.07</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="214 words"><time datetime="PT2M">2 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/rust/">Rust</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/221608026580" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p>스레드를 사용하다보면 둘 이상의 스레드에서 사용할 공용 변수를 두고 써야할 상황이 많다.<br />
+그리고 이러한 상황은 데이터 레이스 등의 심각한 버그를 야기하는 원인 중 하나이기도 하다.</p>
+<p>러스트에서는 이런 문제를 어떻게 해결할까?</p>
+<p>일단 다른 언어들처럼 변수를 밖에 두고, 클로저의 캡쳐를 통해 접근을 시도해보자.
+<img src="/images/img_9f91a3123635ee77.gif" alt="image" /></p>
+<p><img src="/images/img_9f91a3123635ee77.gif" alt="image" />
+?? 값이 바뀌지 않았다.<br />
+클로저는 변수의 값을 복사하기만 하지, 참조하진 않기 때문이다. 클로저가 기억하는건 진짜 num이 아니라 num의 값 1이다...</p>
+<p>그래서 제대로 접근해서 값을 변경시키려면 공유변수의 주소값을 공유하는 형태가 되어야한다.<br />
+아래 코드는 unsafe를 발라놓은 아주 나쁜 코드지만, 일단 돌아가긴 한다.<br />
+라이프타임 문제때문에 data를 정적변수로 놓아놨다. 그리고 정적변수의 수정은 unsafe 블록에서만 할 수 있다..
+<img src="/images/img_9f91a3123635ee77.gif" alt="image" /></p>
+<p><img src="/images/img_9f91a3123635ee77.gif" alt="image" />
+여튼 이렇게 짜면 안된다.</p>
+<p>가장 정석적으로 데이터 공유를 하는 방법은, 스마트포인터 Arc와 Mutex를 사용하는 것이다.<br />
+Mutex로 값을 생성하고, 그걸 다시 Arc로 감싼다.<br />
+Arc와 Mutex의 관계는 Rc와 Refcell의 관계와 거의 같다고 한다. 이건 따로 다루도록 하겠다...</p>
+<p>그리고 사용시에는 Arc의 복제본을 생성해서 캡쳐하고, 클로저에서는 lock으로 상호배제를 걸면서 포인터값을 획득한다.
+<img src="/images/img_9f91a3123635ee77.gif" alt="image" /></p>
+<p><img src="/images/img_9f91a3123635ee77.gif" alt="image" />
+대충 이런식으로 쓰면 된다. Mutex로 동기화까지 처리되니 충돌도 없고 잘 돌아간다.
+<img src="/images/img_9f91a3123635ee77.gif" alt="image" />
+데드락만 조심하면 된다.<br />
+참고로, Mutex는 그 자체로 스마트포인터이기도 하다.
+<img src="/images/img_9f91a3123635ee77.gif" alt="image" /></p>
+<br>
+<p>참조<br />
+<a rel="external" href="https://rinthel.github.io/rust-lang-book-ko/ch16-03-shared-state.html">https://rinthel.github.io/rust-lang-book-ko/ch16-03-shared-state.html</a></p>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/221613241394/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>러스트노미콘<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/221608086218/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>[Rust] 스마트포인터 Box, Rc<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>
