@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[k8s] Envoy Gateway | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224414387422/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[k8s] Envoy Gateway">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224414387422/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-09-25T09:53:16.054277201+00:00">
+    <meta property="article:published_time" content="2026-09-16T19:15:03.881091+00:00">
+    <meta property="article:tag" content="Kubernetes">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224414387422/">[k8s] Envoy Gateway</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-09-16T19:15:03.881091+00:00"><time datetime="2026-09-16T19:15:03.881091+00:00">2026.09.16</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="385 words"><time datetime="PT2M">2 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/kubernetes/">Kubernetes</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224414387422" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p><img src="/images/img_6a24d67dcad0770e.png" alt="" />
+Envoy Gateway는 쿠버네티스 환경에서 사용할 수 있는 envoy 기반 프록시 스택이다.<br />
+완전한 오픈소스다.</p>
+<p>envoy를 게이트웨이 형태로 배포하고, 서비스들 게이트웨이 route 형태로 갖다 붙이는 기능을 제공한다.</p>
+<p>더불어 envoy에서 지원하는 고급 로드밸런싱 알고리즘, rate limit, SSL 및 보안 인가 처리 등 게이트웨이에 필요한 것들은 대개 다 지원한다.</p>
+<p>그냥 간단한 것만 써도 된다면 traefik을 쓰면 되고, 더 고급 LB 기능들이 필요하다면 이게 더 적절하다.</p>
+<br>
+<br>
+<h2 id="seolci">설치</h2>
+<p>helm으로 까는게 편하다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>helm install eg oci</span><span style="color: #9399B2;">:</span><span style="color: #9399B2;font-style: italic;">//docker.io/envoyproxy/gateway-helm --version v1.9.1 -n envoy-gateway-system --create-namespace</span></span>
+<span class="giallo-l"><span>kubectl wait</span><span style="color: #94E2D5;"> --</span><span>timeout</span><span style="color: #94E2D5;">=</span><span>5m</span><span style="color: #94E2D5;"> -</span><span>n envoy</span><span style="color: #94E2D5;">-</span><span>gateway</span><span style="color: #94E2D5;">-</span><span>system deployment</span><span style="color: #94E2D5;">/</span><span>envoy</span><span style="color: #94E2D5;">-</span><span>gateway</span><span style="color: #94E2D5;"> --</span><span>for</span><span style="color: #94E2D5;">=</span><span>condition</span><span style="color: #94E2D5;">=</span><span>Available</span></span></code></pre>
+<p><img src="/images/img_4a8d5dc17235b87a.png" alt="" /></p>
+<p><img src="/images/img_4c07a86b3d5f8322.png" alt="" /></p>
+<p>설치하면 이런 식으로 컨트롤플레인 관련 리소스들이 떠있을 것이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl get all</span><span style="color: #94E2D5;"> -</span><span>n envoy</span><span style="color: #94E2D5;">-</span><span>gateway</span><span style="color: #94E2D5;">-</span><span>system</span></span></code></pre>
+<p><img src="/images/img_8ea4057f16310917.png" alt="" /></p>
+<br>
+<br>
+<br>
+<h2 id="jeonyong-eodeumin">전용 어드민</h2>
+<p>그렇게 대단하진 않지만 대시보드도 지원한다.<br />
+127.0.0.1로 바인딩돼있어서 포트포워딩해놓고 봐야한다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl</span><span style="color: #94E2D5;"> -</span><span>n envoy</span><span style="color: #94E2D5;">-</span><span>gateway</span><span style="color: #94E2D5;">-</span><span>system port</span><span style="color: #94E2D5;">-</span><span>forward deploy</span><span style="color: #94E2D5;">/</span><span>envoy</span><span style="color: #94E2D5;">-</span><span>gateway</span><span style="color: #FAB387;"> 19000</span><span>:</span><span style="color: #FAB387;">19000</span></span></code></pre>
+<p><img src="/images/img_edc22601d3f69b78.png" alt="" /></p>
+<p><img src="/images/img_fe47010847b47d82.png" alt="" />
+그럼 이렇게 뜬다. 포트는 19000이다.<br />
+사실 별건 없고 ui도 좀 촌스럽다.</p>
+<br>
+<br>
+<br>
+<h2 id="geiteuwei-keulraeseu-jeongyi">게이트웨이 클래스 정의</h2>
+<p>이것부터 만들어야 한다. 어떤 게이트웨이 구현체를 사용할 것인지를 지정하는 카테고리 값이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl apply</span><span style="color: #94E2D5;"> -</span><span>f gateway</span><span style="color: #94E2D5;">-</span><span>class</span><span style="color: #94E2D5;">.</span><span>yaml</span></span></code></pre><pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> gateway</span><span style="color: #94E2D5;">.</span><span>networking</span><span style="color: #94E2D5;">.</span><span>k8s</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> GatewayClass</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> eg</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  controllerName</span><span style="color: #9399B2;">:</span><span> gateway</span><span style="color: #94E2D5;">.</span><span>envoyproxy</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>gatewayclass</span><span style="color: #94E2D5;">-</span><span>controller</span></span></code></pre>
+<p>이렇게 만들면 eg라는 이름으로 게이트웨이를 생성했을때, envoy controller 구현체가 자동으로 붙는 것이다.</p>
+<br>
+<br>
+<br>
+<h2 id="geiteuwei-saengseong">게이트웨이 생성</h2>
+<p>이게 실질적인 프록시/게이트웨이를 생성하는 시점이다.<br />
+방금 정의한 class를 가지고 적당히 정의해주면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl apply</span><span style="color: #94E2D5;"> -</span><span>f public</span><span style="color: #94E2D5;">-</span><span>gateway</span><span style="color: #94E2D5;">.</span><span>yaml</span></span></code></pre><pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> gateway</span><span style="color: #94E2D5;">.</span><span>networking</span><span style="color: #94E2D5;">.</span><span>k8s</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> Gateway</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> public</span><span style="color: #94E2D5;">-</span><span>gateway</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span style="color: #CBA6F7;"> default</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  gatewayClassName</span><span style="color: #9399B2;">:</span><span> eg</span></span>
+<span class="giallo-l"><span>  listeners</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> name</span><span style="color: #9399B2;">:</span><span> http</span></span>
+<span class="giallo-l"><span>      protocol</span><span style="color: #9399B2;">:</span><span> HTTP</span></span>
+<span class="giallo-l"><span>      port</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 80</span></span></code></pre>
+<p><img src="/images/img_ee281bd9f8f40a1f.png" alt="" /></p>
+<p>그러면 Service와 deployment를 자동으로 만들어준다.</p>
+<p><img src="/images/img_6d66d253dbbc8602.png" alt="" /></p>
+<p><img src="/images/img_6ff8e8626734d694.png" alt="" />
+그리고 어드민에서도 확인할 수 있을 것이다.</p>
+<br>
+<br>
+<br>
+<h2 id="route-saengseong">Route 생성</h2>
+<p>당연히 게이트웨이만 덜렁 있다고 뭐가 되진 않는다.<br />
+실제로 서비스를 붙이는 것은 HTTPRoute라는 리소스를 통해 처리된다.</p>
+<p>하나의 게이트웨이에는 여러개의 HTTPRoute를 붙여서 사용할 수 있다.</p>
+<p>다음은 nginx 하나 띄워서 붙이는 간단한 구성이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> apps</span><span style="color: #94E2D5;">/</span><span>v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> Deployment</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span style="color: #CBA6F7;"> default</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  replicas</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 1</span></span>
+<span class="giallo-l"><span>  selector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    matchLabels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      app</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>  template</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        app</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>    spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      containers</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> name</span><span style="color: #9399B2;">:</span><span> nginx</span></span>
+<span class="giallo-l"><span>          image</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;">1.27</span><span style="color: #94E2D5;">-</span><span>alpine</span></span>
+<span class="giallo-l"><span>          ports</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span> containerPort</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 80</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">---</span></span>
+<span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> Service</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span style="color: #CBA6F7;"> default</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  selector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    app</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>  ports</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> port</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 80</span></span>
+<span class="giallo-l"><span>      targetPort</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 80</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">---</span></span>
+<span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> gateway</span><span style="color: #94E2D5;">.</span><span>networking</span><span style="color: #94E2D5;">.</span><span>k8s</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> HTTPRoute</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span style="color: #CBA6F7;"> default</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  parentRefs</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> name</span><span style="color: #9399B2;">:</span><span> public</span><span style="color: #94E2D5;">-</span><span>gateway</span></span>
+<span class="giallo-l"><span>  rules</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> matches</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> path</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>            type</span><span style="color: #9399B2;">:</span><span> PathPrefix</span></span>
+<span class="giallo-l"><span>            value</span><span style="color: #9399B2;">:</span><span style="color: #94E2D5;"> /</span></span>
+<span class="giallo-l"><span>      backendRefs</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> name</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>          port</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 80</span></span></code></pre>
+<p>이 경우에는 nginx-test라는 서비스를 가리키고, 그걸 게이트웨이의 루트 패스로 붙이도록 했다.<br />
+prefix는 원하는대로 붙이면 된다.</p>
+<p>그렇게 띄워보면</p>
+<p><img src="/images/img_0ff9668abdca3106.png" alt="" />
+잘 붙을 것이다.</p>
+<br>
+<br>
+<br>
+<h2 id="backendtrafficpolicy">BackendTrafficPolicy</h2>
+<p>이건 LB 규칙을 지정할 수 있는 별개 리소스 단위다.<br />
+로드밸런싱 알고리즘을 여기서 고를 수 있다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> gateway</span><span style="color: #94E2D5;">.</span><span>envoyproxy</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>v1alpha1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> BackendTrafficPolicy</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span style="color: #CBA6F7;"> default</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  targetRefs</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> group</span><span style="color: #9399B2;">:</span><span> gateway</span><span style="color: #94E2D5;">.</span><span>networking</span><span style="color: #94E2D5;">.</span><span>k8s</span><span style="color: #94E2D5;">.</span><span>io</span></span>
+<span class="giallo-l"><span>      kind</span><span style="color: #9399B2;">:</span><span> HTTPRoute</span></span>
+<span class="giallo-l"><span>      name</span><span style="color: #9399B2;">:</span><span> nginx</span><span style="color: #94E2D5;">-</span><span>test</span></span>
+<span class="giallo-l"><span>  loadBalancer</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    type</span><span style="color: #9399B2;">:</span><span> RoundRobin</span></span></code></pre>
+<p>이건 HTTPRoute 단위에 종속되며, 여기서 설정한 값에 따라서 요청 분산 방식이 달라진다.</p>
+<p>RoundRobin, Random, LeastRequest 등이 지원된다.</p>
+<br>
+<br>
+<br>
+<h2 id="dongil-path-dareun-dns">동일 Path, 다른 DNS</h2>
+<p>근데 게이트웨이에 매번 다른 서브path로 서비스를 붙이는 것도 짜증나는 일이다.</p>
+<p>어차피 도메인을 붙일거라면 도메인 기반으로 라우팅을 할 수도 있다.<br />
+homename을 사용하면 된다.</p>
+<p><img src="/images/img_cc9e73f9d9b16e98.png" alt="" /></p>
+<p><img src="/images/img_7f9814118dfc4e82.png" alt="" />
+이렇게 조건을 걸면</p>
+<br>
+<p><img src="/images/img_96b378004d28b958.png" alt="" />
+그냥은 접근이 안되고</p>
+<br>
+<p><img src="/images/img_8b7f80b0092d19b3.png" alt="" />
+도메인을 붙이면</p>
+<br>
+<p><img src="/images/img_4509b3a975bf14ae.png" alt="" /></p>
+<p><img src="/images/img_6c5bdcd5b610a46c.png" alt="" />
+도메인 달고 올때만 그 도메인(호스트네임) 기준으로 분기를 쳐줄 것이다.<br />
+꽤 자주 사용되는 패턴이다.</p>
+<br>
+<p>참조<br />
+<a rel="external" href="https://gateway.envoyproxy.io/docs/concepts/">https://gateway.envoyproxy.io/docs/concepts/</a><br />
+<a rel="external" href="https://gateway.envoyproxy.io/docs/concepts/gateway_api_extensions/backend-traffic-policy/">https://gateway.envoyproxy.io/docs/concepts/gateway_api_extensions/backend-traffic-policy/</a><br />
+<a rel="external" href="https://gateway.envoyproxy.io/docs/tasks/traffic/backend/">https://gateway.envoyproxy.io/docs/tasks/traffic/backend/</a></p>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224418878652/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>[k8s] Cloudflare Mesh로 클러스터 구성하기 (with k3s)<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224412575989/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>TPU의 구조 개략<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>
