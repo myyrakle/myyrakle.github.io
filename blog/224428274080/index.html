@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[k8s] CNI: Cilium (with k3s) | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224428274080/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[k8s] CNI: Cilium (with k3s)">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224428274080/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-10-02T12:58:11.313768361+00:00">
+    <meta property="article:published_time" content="2026-10-01T05:49:08.002401+00:00">
+    <meta property="article:tag" content="Kubernetes">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224428274080/">[k8s] CNI: Cilium (with k3s)</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-10-01T05:49:08.002401+00:00"><time datetime="2026-10-01T05:49:08.002401+00:00">2026.10.01</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="642 words"><time datetime="PT4M">4 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/kubernetes/">Kubernetes</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224428274080" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p><img src="/images/img_4b02e6f586ebb18f.png" alt="" />
+Cilium은 근래에 가장 핫한 쿠버용 네트워크 플러그인이다. 빠른 성능과 훌룡한 관측성, 네트워크 부가기능들을 장점으로 내세운다.</p>
+<p>2018년에 나왔고, 빠르게 CNI 환경을 잡아먹고 있다.</p>
+<p>대부분의 네트워크 기능들을 올인원-오픈소스로 제공한다. 그래서 반픈소스라 엔터프라이즈 사용이 강제되는 calico의 강력한 대안으로 부상하고 있다.</p>
+<p>여기서는 cilium의 역할과 기능. 그리고 기본적인 구성 방법 정도만 정리해본다.</p>
+<br>
+<br>
+<br>
+<h2 id="teugjing">특징</h2>
+<p>다른 CNI 스택(특히 calico)과 차별화되는 특징들을 정리하면 다음과 같다.</p>
+<br>
+<h4 id="ebpf">eBPF</h4>
+<p>커널 기능인 eBPF를 활용해서 컨테이너간-노드간 통신 등을 아주 효율적이고 빠르게 처리할 수 있다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/223412427281">https://blog.naver.com/sssang97/223412427281</a></p>
+<br>
+<h4 id="jace-gwanceugseong-dogu">자체 관측성 도구</h4>
+<p>자체 관측성 도구인 hubble을 지원한다. 패킷 흐름을 한눈에 보기 쉽다.</p>
+<br>
+<h4 id="opeunsoseu">오픈소스</h4>
+<p>calico처럼 기능으로 장난치는 그런 오픈소스가 아니고, 중요한 거의 대부분의 고급기능을 무료로 사용할 수 있다.<br />
+물론 이것도 엔터프라이즈 솔루션이 있긴 한데, 어지간한 주요 기능은 다 오픈소스로 풀어놨다.</p>
+<br>
+<br>
+<br>
+<h2 id="jiweonhaneun-gineunggwa-yeoghal">지원하는 기능과 역할</h2>
+<br>
+<ol>
+<li>CNI의 기본 역할: Pod에 IP를 붙이고 라우팅 설정까지 해준다.</li>
+</ol>
+<br>
+<ol start="2">
+<li>datapath 책임: 노드간 통신을 책임진다. (flannel를 대체)</li>
+</ol>
+<br>
+<ol start="3">
+<li>kube-proxy 대체: kube-proxy를 완전히 대체할 수 있다. iptable 관리를 책임진다.</li>
+</ol>
+<br>
+<ol start="4">
+<li>Service LB 책임: 기본 서비스 로드밸런서의 동작과 분산도 책임진다. (MetalLB도 대체 가능)</li>
+</ol>
+<br>
+<ol start="5">
+<li>NetworkPolicy: NetworkPolicy를 이용한 방화벽 기능도 제공한다.</li>
+</ol>
+<br>
+<ol start="6">
+<li>Service Mesh: 적당한 수준의 Mesh 제어 기능을 제공한다. (istio를 부분 대체)</li>
+</ol>
+<br>
+<ol start="7">
+<li>Ingress: 자체 Ingress 기능을 제공한다.</li>
+</ol>
+<br>
+<ol start="8">
+<li>Egress: Egress SNAT 기능을 제공한다.</li>
+</ol>
+<br>
+<ol start="9">
+<li>Egress Gateway: Egress NAT 서버를 구성해서 게이트웨이를 뚫는 기능을 제공한다.</li>
+</ol>
+<br>
+<br>
+<br>
+<p>큰 덩어리가 이 정도고, 이외에도 다양한 부가기능들을 제공한다.</p>
+<br>
+<br>
+<br>
+<h2 id="cilium-cli-seolci-seontaeg">cilium CLI 설치 (선택)</h2>
+<p>cilium 전용 CLI를 설치하면 cilium 플러그인 설치나 관리 등을 편리하게 할 수 있다.<br />
+다만 이게 필수는 아니다. 이거 없이도 설치하고 운영할 수 있다. 특히 기존 클러스터에 cilium을 설치하는거라면 이건 별로 도움이 안된다.</p>
+<p>bash에서</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>CILIUM_CLI_VERSION</span><span style="color: #94E2D5;">=</span><span style="color: #89B4FA;font-style: italic;">$</span><span>(curl</span><span style="color: #94E2D5;"> -</span><span>s https:</span><span style="color: #9399B2;font-style: italic;">//raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)</span></span>
+<span class="giallo-l"><span>CLI_ARCH</span><span style="color: #94E2D5;">=</span><span>amd64</span></span>
+<span class="giallo-l"><span>if [</span><span style="color: #A6E3A1;"> &quot;$(uname -m)&quot;</span><span style="color: #94E2D5;"> =</span><span style="color: #A6E3A1;"> &quot;aarch64&quot;</span><span> ]; then CLI_ARCH</span><span style="color: #94E2D5;">=</span><span>arm64; fi</span></span>
+<span class="giallo-l"><span>curl</span><span style="color: #94E2D5;"> -</span><span>L</span><span style="color: #94E2D5;"> --</span><span>fail</span><span style="color: #94E2D5;"> --</span><span>remote</span><span style="color: #94E2D5;">-</span><span>name</span><span style="color: #94E2D5;">-</span><span>all https:</span><span style="color: #9399B2;font-style: italic;">//github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}</span></span>
+<span class="giallo-l"><span>sha256sum</span><span style="color: #94E2D5;"> --</span><span>check cilium</span><span style="color: #94E2D5;">-</span><span>linux</span><span style="color: #94E2D5;">-</span><span>$</span><span style="color: #9399B2;">{</span><span>CLI_ARCH</span><span style="color: #9399B2;">}</span><span style="color: #94E2D5;">.</span><span>tar</span><span style="color: #94E2D5;">.</span><span>gz</span><span style="color: #94E2D5;">.</span><span>sha256sum</span></span>
+<span class="giallo-l"><span>sudo tar xzvfC cilium</span><span style="color: #94E2D5;">-</span><span>linux</span><span style="color: #94E2D5;">-</span><span>$</span><span style="color: #9399B2;">{</span><span>CLI_ARCH</span><span style="color: #9399B2;">}</span><span style="color: #94E2D5;">.</span><span>tar</span><span style="color: #94E2D5;">.</span><span>gz</span><span style="color: #94E2D5;"> /</span><span>usr</span><span style="color: #94E2D5;">/</span><span>local</span><span style="color: #94E2D5;">/</span><span>bin</span></span>
+<span class="giallo-l"><span>rm cilium</span><span style="color: #94E2D5;">-</span><span>linux</span><span style="color: #94E2D5;">-</span><span>$</span><span style="color: #9399B2;">{</span><span>CLI_ARCH</span><span style="color: #9399B2;">}</span><span style="color: #94E2D5;">.</span><span>tar</span><span style="color: #94E2D5;">.</span><span>gz</span><span style="color: #9399B2;">{,</span><span>.sha256sum</span><span style="color: #9399B2;">}</span></span></code></pre>
+<p>fish에서</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>set</span><span style="color: #89B4FA;font-style: italic;"> CILIUM_CLI_VERSION</span><span> (curl</span><span style="color: #94E2D5;"> -</span><span>s https:</span><span style="color: #9399B2;font-style: italic;">//raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)</span></span>
+<span class="giallo-l"><span>set CLI_ARCH amd64</span></span>
+<span class="giallo-l"><span>if</span><span style="color: #89B4FA;font-style: italic;"> test</span><span> (uname</span><span style="color: #94E2D5;"> -</span><span>m)</span><span style="color: #94E2D5;"> =</span><span style="color: #A6E3A1;"> &quot;aarch64&quot;</span></span>
+<span class="giallo-l"><span>    set CLI_ARCH arm64</span></span>
+<span class="giallo-l"><span>end</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>curl</span><span style="color: #94E2D5;"> -</span><span>LO https:</span><span style="color: #9399B2;font-style: italic;">//github.com/cilium/cilium-cli/releases/download/$CILIUM_CLI_VERSION/cilium-linux-$CLI_ARCH.tar.gz</span></span>
+<span class="giallo-l"><span>curl</span><span style="color: #94E2D5;"> -</span><span>LO https:</span><span style="color: #9399B2;font-style: italic;">//github.com/cilium/cilium-cli/releases/download/$CILIUM_CLI_VERSION/cilium-linux-$CLI_ARCH.tar.gz.sha256sum</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>sha256sum</span><span style="color: #94E2D5;"> --</span><span>check cilium</span><span style="color: #94E2D5;">-</span><span>linux</span><span style="color: #94E2D5;">-</span><span>$CLI_ARCH</span><span style="color: #94E2D5;">.</span><span>tar</span><span style="color: #94E2D5;">.</span><span>gz</span><span style="color: #94E2D5;">.</span><span>sha256sum</span></span>
+<span class="giallo-l"><span>sudo tar</span><span style="color: #94E2D5;"> -</span><span>C</span><span style="color: #94E2D5;"> /</span><span>usr</span><span style="color: #94E2D5;">/</span><span>local</span><span style="color: #94E2D5;">/</span><span>bin</span><span style="color: #94E2D5;"> -</span><span>xzvf cilium</span><span style="color: #94E2D5;">-</span><span>linux</span><span style="color: #94E2D5;">-</span><span>$CLI_ARCH</span><span style="color: #94E2D5;">.</span><span>tar</span><span style="color: #94E2D5;">.</span><span>gz</span></span>
+<span class="giallo-l"><span>rm cilium</span><span style="color: #94E2D5;">-</span><span>linux</span><span style="color: #94E2D5;">-</span><span>$CLI_ARCH</span><span style="color: #94E2D5;">.</span><span>tar</span><span style="color: #94E2D5;">.</span><span>gz cilium</span><span style="color: #94E2D5;">-</span><span>linux</span><span style="color: #94E2D5;">-</span><span>$CLI_ARCH</span><span style="color: #94E2D5;">.</span><span>tar</span><span style="color: #94E2D5;">.</span><span>gz</span><span style="color: #94E2D5;">.</span><span>sha256sum</span></span></code></pre>
+<p><img src="/images/img_f2f0a7fef4e2b217.png" alt="" />
+설치하고</p>
+<br>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>cilium version</span><span style="color: #94E2D5;"> --</span><span>client</span></span></code></pre>
+<p><img src="/images/img_50b251a71d986d13.png" alt="" />
+이렇게 실행이 되면 된다.</p>
+<br>
+<br>
+<br>
+<h2 id="singyu-keulreoseuteoe-seolcihagi">신규 클러스터에 설치하기</h2>
+<p>가장 쉬운 방법은, 클러스터를 초기화할때 CNI를 cilium으로 못박고 시작하는 것이다.<br />
+이게 기존 CNI나 datapath를 대체하는 것이기 때문에, 일단 비활성화한 채로 클러스터를 초기화해야한다.</p>
+<p>k3s의 경우에는 다음과 같이 설치할 수 있다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>curl</span><span style="color: #94E2D5;"> -</span><span>sfL https</span><span style="color: #9399B2;">:</span><span style="color: #9399B2;font-style: italic;">//get.k3s.io | INSTALL_K3S_EXEC=&#39;--flannel-backend=none --disable-network-policy&#39; sh -</span></span></code></pre>
+<p>먼저 다 비활성화한채로 깔고</p>
+<p>cilium CLI를 통해 설치하면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span style="color: #CBA6F7;">export</span><span> KUBECONFIG</span><span style="color: #94E2D5;">=/</span><span>etc</span><span style="color: #94E2D5;">/</span><span>rancher</span><span style="color: #94E2D5;">/</span><span>k3s</span><span style="color: #94E2D5;">/</span><span>k3s</span><span style="color: #94E2D5;">.</span><span>yaml</span></span>
+<span class="giallo-l"><span>cilium install</span><span style="color: #FAB387;"> 1.20</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">2</span></span></code></pre>
+<p>다만 이 방식은 기존 클러스터에 사용할 수 없고, 세팅값 조절도 좀 불편하다는 단점이 있다.</p>
+<br>
+<br>
+<br>
+<h2 id="gijon-keulreoseuteoe-ggalgi-k3s">기존 클러스터에 깔기 (k3s)</h2>
+<p>기존 k3s 클러스터에 cilium을 설치하는 방법을 정리한다.<br />
+이건 다운타임을 좀 감수해야한다.</p>
+<p>먼저 control plane 에이전트의 설정값을 바꾸고 systemd로 재부팅을 해준다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>sudo mkdir</span><span style="color: #94E2D5;"> -</span><span>p</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>rancher</span><span style="color: #94E2D5;">/</span><span>k3s</span></span>
+<span class="giallo-l"><span>sudo vim</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>rancher</span><span style="color: #94E2D5;">/</span><span>k3s</span><span style="color: #94E2D5;">/</span><span>config</span><span style="color: #94E2D5;">.</span><span>yaml</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #94E2D5;">...</span></span>
+<span class="giallo-l"><span>flannel</span><span style="color: #94E2D5;">-</span><span>backend</span><span style="color: #9399B2;">:</span><span> none</span></span>
+<span class="giallo-l"><span>disable</span><span style="color: #94E2D5;">-</span><span>network</span><span style="color: #94E2D5;">-</span><span>policy</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span>
+<span class="giallo-l"><span>disable</span><span style="color: #94E2D5;">-</span><span>kube</span><span style="color: #94E2D5;">-</span><span>proxy</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span></code></pre>
+<p><img src="/images/img_8f44e884f7d087dd.png" alt="" /></p>
+<p>에이전트 노드는 건들 필요 없다. 컨트롤플레인만 바꾸면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>sudo systemctl restart k3s # 마스터노드</span></span></code></pre>
+<p>여기까지 왔다면 CLI는 쓸모없고, helm을 통해서 설치하는게 제일 편하다.<br />
+먼저 values를 준비하고, 안에 IP를 채워둔다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span># ── kube</span><span style="color: #94E2D5;">-</span><span>proxy 교체 ───────────────────────────────────────────────</span></span>
+<span class="giallo-l"><span># Egress Gateway 전제조건</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;"> BPF</span><span> 로 Service → Backend 로드밸런싱 수행</span><span style="color: #94E2D5;">.</span></span>
+<span class="giallo-l"><span>kubeProxyReplacement</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># kube</span><span style="color: #94E2D5;">-</span><span>proxy 가 없으므로 Cilium agent 가 API 서버 주소를 직접 알아야 함</span><span style="color: #94E2D5;">.</span></span>
+<span class="giallo-l"><span># control</span><span style="color: #94E2D5;">-</span><span>plane의 LAN IP</span><span style="color: #94E2D5;"> +</span><span> k3s 기본 포트</span><span style="color: #94E2D5;">.</span></span>
+<span class="giallo-l"><span>k8sServiceHost</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.202</span><span> # 알아서 바꾸시오</span></span>
+<span class="giallo-l"><span>k8sServicePort</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 6443</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># ── CNI 교체 모드 ─────────────────────────────────────────────────</span></span>
+<span class="giallo-l"><span># 설치 시 기존 flannel CNI 설정</span><span style="color: #89B4FA;font-style: italic;"> 파일</span><span> (</span><span style="color: #94E2D5;">/</span><span>etc</span><span style="color: #94E2D5;">/</span><span>cni</span><span style="color: #94E2D5;">/</span><span>net</span><span style="color: #94E2D5;">.</span><span>d</span><span style="color: #9399B2;font-style: italic;">/*) 을 Cilium 것으로 교체.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">cni:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  exclusive: true</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># ── IPAM ──────────────────────────────────────────────────────────</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># &quot;kubernetes&quot; = 각 노드의 .spec.podCIDR 을 그대로 사용.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># 기존 할당 (macmini-1: 10.42.0.0/24, macmini-2: 10.42.1.0/24,</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># mini-pc-1: 10.42.2.0/24) 유지.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">ipam:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  mode: kubernetes</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># ── BPF ───────────────────────────────────────────────────────────</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># masquerade: Pod → 외부 트래픽 SNAT 를 iptables 대신 BPF 로. Egress GW 필수조건.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># distributedLRU: 1.17+ 템플릿이 nil 체크 안 해서 명시 필요. 기본 off 유지.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">bpf:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  masquerade: true</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  distributedLRU:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    enabled: false</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># ── Egress Gateway ────────────────────────────────────────────────</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># 기능 플래그. CiliumEgressGatewayPolicy 리소스가 없으면 아무 작업 안 함.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># 설치 후 서비스별로 policy + pod label 로 opt-in.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">egressGateway:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  enabled: true</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># ── L7 Proxy ──────────────────────────────────────────────────────</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># Hubble L7 메트릭/HTTP NetworkPolicy 용.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">l7Proxy: true</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># ── Standalone DNS Proxy ──────────────────────────────────────────</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># 1.17+ 템플릿이 nil 체크 안 해서 명시 필요. 기본 off 유지.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">standaloneDnsProxy:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  enabled: false</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;"># ── Hubble (관측) ─────────────────────────────────────────────────</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">hubble:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  enabled: true</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  relay:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    enabled: true</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    # 1.17+ 템플릿이 logOptions.format nil 체크 안 해서 명시 필요.</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    logOptions:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      format: json</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  ui:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    enabled: true</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">  metrics:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">    enabled:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      - dns</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      - drop</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      - tcp</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      - flow</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      - port-distribution</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      - icmp</span></span></code></pre>
+<p>그리고 즉시 설치한다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>helm repo add cilium https</span><span style="color: #9399B2;">:</span><span style="color: #9399B2;font-style: italic;">//helm.cilium.io/</span></span>
+<span class="giallo-l"><span>helm repo update</span></span>
+<span class="giallo-l"><span>helm install cilium cilium</span><span style="color: #94E2D5;">/</span><span>cilium</span><span style="color: #94E2D5;"> --</span><span style="color: #CBA6F7;">namespace</span><span style="color: #F9E2AF;font-style: italic;"> kube</span><span>-</span><span style="color: #F9E2AF;font-style: italic;">system</span><span> --</span><span style="color: #F9E2AF;font-style: italic;">version</span><span> 1</span><span style="color: #94E2D5;">.</span><span>20</span><span style="color: #94E2D5;">.</span><span>2 -</span><span style="color: #F9E2AF;font-style: italic;">f values</span><span style="color: #94E2D5;">.</span><span style="color: #F9E2AF;font-style: italic;">yaml</span></span></code></pre>
+<p><img src="/images/img_1fa24f25d761b15b.png" alt="" /></p>
+<p>그리고 pod가 잘 스케줄링되는지 확인한다. 딸려오는 리소스가 제법 많다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl get all</span><span style="color: #94E2D5;"> -</span><span>A</span><span style="color: #94E2D5;"> -</span><span>l app</span><span style="color: #94E2D5;">.</span><span>kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>part</span><span style="color: #94E2D5;">-</span><span style="color: #CBA6F7;">of</span><span style="color: #94E2D5;">=</span><span>cilium</span></span></code></pre>
+<p><img src="/images/img_0713b58ca3b440d1.png" alt="" /></p>
+<p>그리고 나서 기존 Pod들도 재실행해줘야 한다.<br />
+기존 Pod들은 구 네트워크 계층(flannel 등)으로 실행되고 있을 것이기 때문이다.<br />
+네트워크 안정성이 확실히 검증되면, 그 뒤에 재실행을 강제로 때려준다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>for ns</span><span style="color: #CBA6F7;"> in</span><span> argocd kube</span><span style="color: #94E2D5;">-</span><span>system envoy</span><span style="color: #94E2D5;">-</span><span>gateway</span><span style="color: #94E2D5;">-</span><span>system observability curhouse app arc</span><span style="color: #94E2D5;">-</span><span>systems arc</span><span style="color: #94E2D5;">-</span><span>runners</span><span style="color: #CBA6F7;"> default</span><span style="color: #9399B2;">;</span><span style="color: #CBA6F7;"> do</span></span>
+<span class="giallo-l"><span>  echo</span><span style="color: #A6E3A1;"> &quot;=== $ns ===&quot;</span></span>
+<span class="giallo-l"><span>  kubectl</span><span style="color: #94E2D5;"> -</span><span>n $ns rollout restart deploy</span><span style="color: #9399B2;">,</span><span>ds</span><span style="color: #9399B2;">,</span><span>sts</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;/</span><span>dev</span><span style="color: #94E2D5;">/</span><span style="color: #CBA6F7;">null</span><span style="color: #94E2D5;"> |</span><span> grep</span><span style="color: #94E2D5;"> -</span><span>v</span><span style="color: #A6E3A1;"> &quot;no resources&quot;</span></span>
+<span class="giallo-l"><span>done</span></span></code></pre><br>
+<br>
+<h4 id="teureobeulsyuting-neteuweokeu-hwagin">트러블슈팅: 네트워크 확인</h4>
+<p>잘 설치되었다면 외부접속까지 다 잘 되어야한다. 다음은 DNS 체크용 스크립트다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl run t</span><span style="color: #94E2D5;"> --</span><span>rm</span><span style="color: #94E2D5;"> -</span><span>i</span><span style="color: #94E2D5;"> --</span><span>restart</span><span style="color: #94E2D5;">=</span><span>Never</span><span style="color: #94E2D5;"> --</span><span>image</span><span style="color: #94E2D5;">=</span><span>alpine</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;">3.20</span><span style="color: #94E2D5;"> --</span><span> sh</span><span style="color: #94E2D5;"> -</span><span>c</span><span style="color: #A6E3A1;"> &#39;</span></span>
+<span class="giallo-l"><span style="color: #A6E3A1;">  echo &quot;-- cluster DNS --&quot;</span></span>
+<span class="giallo-l"><span>  nslookup kubernetes</span><span style="color: #94E2D5;">.</span><span>default</span><span style="color: #94E2D5;">.</span><span>svc</span><span style="color: #94E2D5;">.</span><span>cluster</span><span style="color: #94E2D5;">.</span><span>local</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;&amp;</span><span style="color: #FAB387;">1</span><span style="color: #94E2D5;"> |</span><span> tail</span><span style="color: #94E2D5;"> -</span><span style="color: #FAB387;">4</span></span>
+<span class="giallo-l"><span>  echo</span><span style="color: #A6E3A1;"> &quot;-- external DNS --&quot;</span></span>
+<span class="giallo-l"><span>  nslookup github</span><span style="color: #94E2D5;">.</span><span>com</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;&amp;</span><span style="color: #FAB387;">1</span><span style="color: #94E2D5;"> |</span><span> tail</span><span style="color: #94E2D5;"> -</span><span style="color: #FAB387;">3</span></span>
+<span class="giallo-l"><span>  echo</span><span style="color: #A6E3A1;"> &quot;-- external TCP --&quot;</span></span>
+<span class="giallo-l"><span>  nc</span><span style="color: #94E2D5;"> -</span><span>zvw3 github</span><span style="color: #94E2D5;">.</span><span>com</span><span style="color: #FAB387;"> 443 2</span><span style="color: #94E2D5;">&gt;&amp;</span><span style="color: #FAB387;">1</span></span>
+<span class="giallo-l"><span style="color: #A6E3A1;">&#39;</span></span></code></pre>
+<p><img src="/images/img_a215a1aadf286c77.png" alt="" /></p>
+<p>혹은, cilium CLI를 사용하는 것도 좋다. 이건 모든 네트워크 건전성을 확인해준다.<br />
+외부 인터넷 통신, 노드간 통신, pod간 통신을 포함해서 귀찮은 모든 체크리스트를 확인해주기 때문에, 꽤 괜찮다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>cilium connectivity test</span><span style="color: #94E2D5;"> --</span><span>test</span><span style="color: #94E2D5;">-</span><span>concurrency</span><span style="color: #FAB387;"> 2</span></span></code></pre>
+<p><img src="/images/img_c92af740344b2ef8.png" alt="" /></p>
+<p><img src="/images/img_6aaa9a5629445826.png" alt="" />
+근데 결과를 예쁘게 정리해주진 않는다.</p>
+<br>
+<br>
+<h4 id="teureobeulsyuting-flannel-janjon-jegeo">트러블슈팅: flannel 잔존 제거</h4>
+<p>가끔 flannel이나 예전 cilium의 부산물이 구성을 방해해서 뻑나는 경우가 있다.<br />
+그럴 때는 적당히 기존 세팅을 지워줘야 한다. 다음은 스크립트성 daemonset이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> apps</span><span style="color: #94E2D5;">/</span><span>v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> DaemonSet</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> cilium</span><span style="color: #94E2D5;">-</span><span>cleanup</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>system</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  selector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    matchLabels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      app</span><span style="color: #9399B2;">:</span><span> cilium</span><span style="color: #94E2D5;">-</span><span>cleanup</span></span>
+<span class="giallo-l"><span>  template</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        app</span><span style="color: #9399B2;">:</span><span> cilium</span><span style="color: #94E2D5;">-</span><span>cleanup</span></span>
+<span class="giallo-l"><span>    spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      hostNetwork</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span>
+<span class="giallo-l"><span>      tolerations</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> operator</span><span style="color: #9399B2;">:</span><span> Exists</span></span>
+<span class="giallo-l"><span>      containers</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">      -</span><span> name</span><span style="color: #9399B2;">:</span><span> c</span></span>
+<span class="giallo-l"><span>        image</span><span style="color: #9399B2;">:</span><span> alpine</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;">3.20</span></span>
+<span class="giallo-l"><span>        command</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> sh</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        - -</span><span>c</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        - |</span></span>
+<span class="giallo-l"><span>          chroot</span><span style="color: #94E2D5;"> /</span><span>host sh</span><span style="color: #94E2D5;"> -</span><span>c</span><span style="color: #A6E3A1;"> &#39;</span></span>
+<span class="giallo-l"><span style="color: #A6E3A1;">            # Cilium 디바이스</span></span>
+<span class="giallo-l"><span>            ip link del cilium_vxlan</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;/</span><span>dev</span><span style="color: #94E2D5;">/</span><span style="color: #CBA6F7;">null</span></span>
+<span class="giallo-l"><span>            ip link del cilium_net</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;/</span><span>dev</span><span style="color: #94E2D5;">/</span><span style="color: #CBA6F7;">null</span></span>
+<span class="giallo-l"><span>            ip link del cilium_host</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;/</span><span>dev</span><span style="color: #94E2D5;">/</span><span style="color: #CBA6F7;">null</span></span>
+<span class="giallo-l"><span>            ip link del cilium_wg0</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;/</span><span>dev</span><span style="color: #94E2D5;">/</span><span style="color: #CBA6F7;">null</span></span>
+<span class="giallo-l"><span>            # flannel 디바이스</span></span>
+<span class="giallo-l"><span>            ip link del flannel</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">1 2</span><span style="color: #94E2D5;">&gt;/</span><span>dev</span><span style="color: #94E2D5;">/</span><span style="color: #CBA6F7;">null</span></span>
+<span class="giallo-l"><span>            ip link del cni0</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;/</span><span>dev</span><span style="color: #94E2D5;">/</span><span style="color: #CBA6F7;">null</span></span>
+<span class="giallo-l"><span>            # cni0 에 붙어있던 veth 들</span></span>
+<span class="giallo-l"><span>            for v</span><span style="color: #CBA6F7;"> in</span><span style="color: #89B4FA;font-style: italic;"> $</span><span>(ip</span><span style="color: #94E2D5;"> -</span><span>o link show</span><span style="color: #94E2D5;"> |</span><span> awk</span><span style="color: #94E2D5;"> -</span><span>F: </span><span style="color: #A6E3A1;">&quot;/@if[0-9]+/ {print </span><span style="color: #F5C2E7;">\$</span><span style="color: #A6E3A1;">2}&quot;</span><span style="color: #94E2D5;"> |</span><span> awk</span><span style="color: #94E2D5;"> -</span><span>F@ </span><span style="color: #A6E3A1;">&quot;{print </span><span style="color: #F5C2E7;">\$</span><span style="color: #A6E3A1;">1}&quot;</span><span style="color: #94E2D5;"> |</span><span> grep</span><span style="color: #94E2D5;"> -</span><span>E</span><span style="color: #A6E3A1;"> &quot;^(veth|lxc)&quot;</span><span>)</span><span style="color: #9399B2;">;</span><span style="color: #CBA6F7;"> do</span></span>
+<span class="giallo-l"><span>              ip link del $v</span><span style="color: #FAB387;"> 2</span><span style="color: #94E2D5;">&gt;/</span><span>dev</span><span style="color: #94E2D5;">/</span><span style="color: #CBA6F7;">null</span></span>
+<span class="giallo-l"><span>            done</span></span>
+<span class="giallo-l"><span>            # 상태 디렉토리</span><span style="color: #94E2D5;"> +</span><span> BPF fs</span><span style="color: #94E2D5;"> +</span><span> CNI 설정</span></span>
+<span class="giallo-l"><span>            rm</span><span style="color: #94E2D5;"> -</span><span>rf</span><span style="color: #94E2D5;"> /</span><span style="color: #CBA6F7;">var</span><span>/run/cilium /var/lib/cilium</span></span>
+<span class="giallo-l"><span>            rm</span><span style="color: #94E2D5;"> -</span><span>rf</span><span style="color: #94E2D5;"> /</span><span>sys</span><span style="color: #94E2D5;">/</span><span>fs</span><span style="color: #94E2D5;">/</span><span>bpf</span><span style="color: #94E2D5;">/</span><span>tc</span><span style="color: #94E2D5;"> /</span><span>sys</span><span style="color: #94E2D5;">/</span><span>fs</span><span style="color: #94E2D5;">/</span><span>bpf</span><span style="color: #94E2D5;">/</span><span>cilium</span></span>
+<span class="giallo-l"><span>            rm</span><span style="color: #94E2D5;"> -</span><span>f</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>cni</span><span style="color: #94E2D5;">/</span><span>net</span><span style="color: #94E2D5;">.</span><span>d</span><span style="color: #9399B2;font-style: italic;">/*flannel* /etc/cni/net.d/*cilium*</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">          &#39;</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">          echo &quot;done on $(hostname)&quot;</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">          sleep 3600</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">        securityContext:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">          privileged: true                                        Jump to bottom (ctrl+End) ↓</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">        volumeMounts:</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">        - name: host                                              Jump to bottom (ctrl+End) ↓</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">          mountPath: /host</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      volumes:                                                    Jump to bottom (ctrl+End) ↓</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">      - name: host</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">        hostPath:                                                 Jump to bottom (ctrl+End) ↓</span></span>
+<span class="giallo-l"><span style="color: #9399B2;font-style: italic;">          path: /</span></span></code></pre><br>
+<br>
+<br>
+<h2 id="gwanceugseong-dogu-hubble">관측성 도구: hubble</h2>
+<p>cilium은 라우팅을 eBPF 기반으로 처리하는데, 그 과정에서 모니터링 데이터도 효율적으로 쌓아서 보여줄 수 있는 구조를 갖고 있다. 그래서 Pod간 네트워크 이동을</p>
+<p>서비스를 보면 이렇게 있는데</p>
+<p><img src="/images/img_7bdc80c938e4d595.png" alt="" />
+여기서 웹 UI는 hubble-ui라는 녀석이다.</p>
+<p>포트포워딩하거나 터널 열어서 들어가면</p>
+<p><img src="/images/img_2ff5e214b634f4b5.png" alt="" />
+이렇게 뜨는데</p>
+<br>
+<p><img src="/images/img_d6c82a8cfd74a6bc.png" alt="" />
+네임스페이스 고르면 이렇게 한눈에 그래프로 보여준다.<br />
+아래에서는 실시간 트래픽이 빠르게 올라온다.</p>
+<p>좀 디테일하게 조정해서 보고싶다면 hubble-CLI를 설치하고 릴레이 열어서 보면 된다.<br />
+자세한 것은 별도 포스트에서 다시 정리하겠다.</p>
+<br>
+<br>
+<p>참조<br />
+<a rel="external" href="https://cilium.io/">https://cilium.io/</a><br />
+<a rel="external" href="https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/">https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/</a><br />
+<a rel="external" href="https://blog.naver.com/sssang97/223412427281">https://blog.naver.com/sssang97/223412427281</a></p>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224428481888/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>[k8s] k3s: etcd로 마이그레이션하기<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224425759200/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>[k8s] Pod의 품질과 Guaranteed Class Pod<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>
