@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[k8s] k3s: 고가용성 Control Plane 구성하기 | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224435474388/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[k8s] k3s: 고가용성 Control Plane 구성하기">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224435474388/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-10-09T17:40:16.642008517+00:00">
+    <meta property="article:published_time" content="2026-10-08T08:54:34.785983+00:00">
+    <meta property="article:tag" content="Kubernetes">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224435474388/">[k8s] k3s: 고가용성 Control Plane 구성하기</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-10-08T08:54:34.785983+00:00"><time datetime="2026-10-08T08:54:34.785983+00:00">2026.10.08</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="281 words"><time datetime="PT2M">2 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/kubernetes/">Kubernetes</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224435474388" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p>k3s 기반 클러스터에서 고가용성 클러스터를 구성하는 방법을 다룬다.</p>
+<p>일단 전제조건이 몇가지 있다.<br />
+우선 etcd를 써야한다. 기본값이 sqlite라서 제대로 된 스토리지 분산이 안된다. 바꾸는 것 자체도 어렵지 않다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/224428481888">https://blog.naver.com/sssang97/224428481888</a></p>
+<p>그리고, 각 control plane 노드를 묶어서 찌를 수 있게 해주는 LB 계층이나 가상 IP 계층이 필요하다.<br />
+LB에 노드를 물려서 쓸 수도 있긴 한데, 그러면 운영 코스트가 늘고 LB 자체가 장애지점이 되기 때문에 그닥 추천하진 않는다.<br />
+가장 심플한 방법은 ARP 기반으로 vip를 구성해서, 살아있는 놈이 능동적으로 엔드포인트 IP를 물고 API를 받을 수 있게 하는 것이다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/224428580085">https://blog.naver.com/sssang97/224428580085</a></p>
+<p>그래서 여기서 구성할 클러스터의 구조도는 대략 이렇게 나온다.</p>
+<p><img src="/images/img_e81981919dfd5e3c.png" alt="" />
+마스터 노드 하나마다 etcd(DB)를 내장하고, 3개(홀수개) 정족수로 쿼럼을 구성한다.<br />
+그리고 엔드포인트로는 vip를 써서 API 몸빵하던 노드가 죽더라도 계승할 수 있도록 하는 것이다.</p>
+<p>VIP 대신 LB를 써서 묶어도 되긴 하는데, 그러면 운영포인트나 코스트가 증가한다.<br />
+etcd도 외부로 뺄 수 있지만, 그거도 일이고 비용이다. 내장하는걸로 한다. 그리고 이게 기본값이다.</p>
+<br>
+<br>
+<br>
+<h2 id="ha-keulreoseuteo-guseonghagi">HA 클러스터 구성하기</h2>
+<p>당연히 최소 2개의 추가 노드를 준비해야 한다.</p>
+<p>먼저 기존 마스터 노드에 들어가서, 설정파일을 수정한다.<br />
+tls-san 목록에 신규 노드의 내부 IP를 추가해주면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>sudo vim</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>rancher</span><span style="color: #94E2D5;">/</span><span>k3s</span><span style="color: #94E2D5;">/</span><span>config</span><span style="color: #94E2D5;">.</span><span>yaml</span></span>
+<span class="giallo-l"><span>sudo systemctl restart k3s</span></span></code></pre>
+<p><img src="/images/img_02347c88e6012dfd.png" alt="" />
+재시작해준다.</p>
+<p>그리고 추가할 노드의 장비에 들어가서</p>
+<p><img src="/images/img_dbffa414d0ace2f9.png" alt="" /></p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>sudo mkdir</span><span style="color: #94E2D5;"> -</span><span>p</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>rancher</span><span style="color: #94E2D5;">/</span><span>k3s</span></span>
+<span class="giallo-l"><span>sudo vim</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>rancher</span><span style="color: #94E2D5;">/</span><span>k3s</span><span style="color: #94E2D5;">/</span><span>config</span><span style="color: #94E2D5;">.</span><span>yaml</span></span></code></pre>
+<p><img src="/images/img_e1fde556a1b6edc2.png" alt="" />
+기존 노드와 비슷하게 config를 정의해준다.<br />
+iface는 알아서 잘 찾아서 넣고</p>
+<p>토큰만 잘 가져와서 집어넣으면 된다. server 플래그를 넣고 날리면 알아서 control plane으로 조인할 것이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>curl</span><span style="color: #94E2D5;"> -</span><span>sfL https</span><span style="color: #9399B2;">:</span><span style="color: #9399B2;font-style: italic;">//get.k3s.io | INSTALL_K3S_VERSION=&quot;v1.36.4+k3s1&quot; \</span></span>
+<span class="giallo-l"><span>  K3S_URL</span><span style="color: #94E2D5;">=</span><span>https</span><span style="color: #9399B2;">:</span><span style="color: #9399B2;font-style: italic;">//VIP:6443 K3S_TOKEN=&quot;$K3S_TOKEN&quot; \</span></span>
+<span class="giallo-l"><span>  sh</span><span style="color: #94E2D5;"> -</span><span>s</span><span style="color: #94E2D5;"> -</span><span> server</span></span></code></pre>
+<p><img src="/images/img_57b2a57f2ebaf237.png" alt="" />
+2대 다 연결하고</p>
+<br>
+<p><img src="/images/img_4a773182bd9f65f5.png" alt="" />
+이렇게 뜨면 잘 된 것이다.</p>
+<p>이제 한대가 죽거나 네트워크 장애가 발생하더라도, 나머지 노드들로 최소한의 가용성을 유지할 수 있을 것이다.</p>
+<br>
+<br>
+<p>참조<br />
+<a rel="external" href="https://docs.k3s.io/blog/2025/03/10/simple-ha">https://docs.k3s.io/blog/2025/03/10/simple-ha</a><br />
+<a rel="external" href="https://docs.k3s.io/datastore/ha-embedded">https://docs.k3s.io/datastore/ha-embedded</a></p>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224435763589/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>[k8s] Longhorn<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224434395542/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>[k8s] 쿠버네티스와 OOMKill<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>

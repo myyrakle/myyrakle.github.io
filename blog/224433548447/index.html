@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[k8s] Cilium: Egress Gateway (with kube-vip) | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224433548447/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[k8s] Cilium: Egress Gateway (with kube-vip)">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224433548447/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-10-09T17:40:16.642008517+00:00">
+    <meta property="article:published_time" content="2026-10-06T15:39:34.693840+00:00">
+    <meta property="article:tag" content="Kubernetes">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224433548447/">[k8s] Cilium: Egress Gateway (with kube-vip)</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-10-06T15:39:34.69384+00:00"><time datetime="2026-10-06T15:39:34.69384+00:00">2026.10.06</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="784 words"><time datetime="PT4M">4 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/kubernetes/">Kubernetes</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224433548447" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p><img src="/images/img_faae188825753e11.jpg" alt="" />
+Egress Gateway는 cilium의 주요 확장 기능 중 하나다.<br />
+Egress, 그러니까 아웃바운드 트래픽을 어떤 IP로 나가게 할지 지정할 수 있게 해주는 기능을 제공한다.</p>
+<br>
+<br>
+<br>
+<h2 id="gibon-weonri">기본 원리</h2>
+<p>기본적인 논리는 그다지 복잡할 것은 없다.</p>
+<p><img src="/images/img_72b9c9d6232ec560.png" alt="" />
+게이트웨이 노드를 하나 잡아놓으면, 그놈을 통해 트래픽을 경유해서 나가게 하는 것이다.</p>
+<p>구성하기에 따라서 다양한 흐름으로 전개를 할 수 있지만, 일단 기본 논리는 한놈이 갖고 있는 IP로 SNAT을 때리는 것이다. 그리고 해당 IP를 특정 WAN에 물려서 내보내면 된다.</p>
+<p>그래서 기본 구조에서는 이게 다운타임이 항상 생길 수밖에 없기도 하다. 일단은 하나의 노드가 IP를 물고 대행을 해줘야 하기 때문에, 부하의 문제도 있고, 해당 노드가 죽었을 때도 다운타임이 발생할 수 있다.</p>
+<p>cilium egress에도 고가용성 옵션이 있긴 한데, 이건 cilium 엔터프라이즈에서만 제공되는 기능이고, 직접 구성하려면 손을 좀 써야한다.</p>
+<br>
+<br>
+<br>
+<h2 id="sajeon-jogeon">사전 조건</h2>
+<p>이걸 사용하려면 cilium을 설치할 때 특정 옵션을 켜줘야 한다. 기본값이 아니다.<br />
+cilium CLI를 통해 설치할 경우 기본값에 이게 포함되어있지 않기 때문에 그냥 깔았다간 놓칠 수 있다.</p>
+<p>helm을 통해 설치할 경우에는 다음과 같이 옵션을 넣어서 설치할 수 있다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span># Egress Gateway 전제조건</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;"> BPF</span><span> 로 Service → Backend 로드밸런싱 수행</span><span style="color: #94E2D5;">.</span></span>
+<span class="giallo-l"><span>kubeProxyReplacement</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>egressGateway</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  enabled</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span></code></pre>
+<p>이거 2가지가 핵심이다.<br />
+이 2가지 값은 다운타임이 수반되는 변경이라서, 가급적이면 처음부터 넣어주는게 좋다.</p>
+<br>
+<br>
+<br>
+<h2 id="egress-gateway-sayonghaebogi">Egress Gateway 사용해보기</h2>
+<p>일단 이런저런 부가 옵션 빼고 그냥 띄워서 쓰는게 목적이라면, 세팅은 매우 간단하다.</p>
+<p>다음과 같이 정책만 하나 정의해주면 끝인 것이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> cilium</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>v2</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> CiliumEgressGatewayPolicy</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> egress</span><span style="color: #94E2D5;">-</span><span>wan4</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  selectors</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> podSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        matchLabels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>          egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>profile</span><span style="color: #9399B2;">:</span><span> wan4</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  destinationCIDRs</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span style="color: #FAB387;"> 0.0</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">0.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">0</span></span>
+<span class="giallo-l"><span>  excludedCIDRs</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span style="color: #FAB387;"> 10.42</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">0.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">16</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span style="color: #FAB387;"> 10.43</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">0.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">16</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span style="color: #FAB387;"> 192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">24</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  egressGateway</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    nodeSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      matchLabels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>pool</span><span style="color: #9399B2;">:</span><span style="color: #CBA6F7;"> default</span></span>
+<span class="giallo-l"><span>    egressIP</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.222</span></span></code></pre>
+<p>이 정의는 다음과 같은 의미를 가진다.</p>
+<ol>
+<li>"egress.myyrakle.io/profile: wan4"가 붙어있는 pod에 대해서 적용한다.</li>
+<li>"egress.myyrakle.io/pool: default"가 붙어있는 node를 gateway 노드로 선택한다.</li>
+<li>내보내는 최종 IP는 192.168.88.222다. (SNAT)</li>
+</ol>
+<p>그리고 pod를 정의할때 위 조건에 맞춰서 라벨만 달아주면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">  ...</span></span>
+<span class="giallo-l"><span>  template</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        ...</span></span>
+<span class="giallo-l"><span>        egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>profile</span><span style="color: #9399B2;">:</span><span> wan4</span></span></code></pre>
+<p>그리고 테스트해볼때는 이런 식으로 하면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl run egress</span><span style="color: #94E2D5;">-</span><span>test</span><span style="color: #94E2D5;">-</span><span>wan4</span><span style="color: #94E2D5;"> --</span><span>image</span><span style="color: #94E2D5;">=</span><span>alpine</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;">3.20</span><span> \</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">--</span><span>labels</span><span style="color: #94E2D5;">=</span><span>egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>profile</span><span style="color: #94E2D5;">=</span><span>wan4</span><span style="color: #94E2D5;"> --</span><span>restart</span><span style="color: #94E2D5;">=</span><span>Never \</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">--</span><span>command</span><span style="color: #94E2D5;"> --</span><span> sh</span><span style="color: #94E2D5;"> -</span><span>c</span><span style="color: #A6E3A1;"> &#39;sleep 5; for i in 1 2 3; do wget -qO- -T 8 http://ifconfig.me/ip; echo &quot; rc=$?&quot;; done&#39;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>kubectl logs egress</span><span style="color: #94E2D5;">-</span><span>test</span><span style="color: #94E2D5;">-</span><span>wan4</span></span></code></pre>
+<p><img src="/images/img_ff81f6cbb299e53f.png" alt="" />
+그럼 설정한대로 wan4에 붙어있는 공인 IP로 나간 것을 볼 수 있다.</p>
+<br>
+<br>
+<br>
+<h2 id="kube-vipwa-gogayongseong">kube-vip와 고가용성</h2>
+<p>근데 위 방식에는 문제가 있다.<br />
+노드가 혼자 몸빵하는 것도 문제라면 문제인데, 일단 게이트웨이 역할을 맡은 노드가 뻗으면 전체 장애가 발생하는 것이기 때문이다.</p>
+<p>이럴때 활용하기 좋은 것이 kube-vip다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/224428580085">https://blog.naver.com/sssang97/224428580085</a><br />
+이걸 사용하면 내보낼 IP 자체를 특정 노드에 종속시키기 않고, 다른 노드에 인계해서 장애가 자동으로 회복되도록 만들 수 있다.</p>
+<p>하나의 노드에 부하가 과중되는건 그냥 IP 자체를 분산해놓고 동일 WAN에 라우팅하면 되는 것이고, 가용성을 챙기는건 이 vip를 활용하는 것이 가장 괜찮다.</p>
+<p>여기서는 kube-vip를 활용해서 구성하는 방법을 다뤄본다.</p>
+<p>내 경우에는 wan이 8개가 넘는데, 이걸 다 연동해야해서 구성이 조금 복잡하다.</p>
+<p><img src="/images/img_9e20d9c334344410.png" alt="" />
+그리고 vip를 쓰기 때문에 가상 ip로 사용할 ip 목록을 미리 정해놓고 DHCP 범위에서 빼놓는 편이 좋다.<br />
+내 경우에는 192.168.88.200~를 사용하기로 했다.</p>
+<br>
+<br>
+<br>
+<h2 id="geiteuweiyong-rabel-butigi">게이트웨이용 라벨 붙이기</h2>
+<p>자, 일단 Egress Gateway로 사용할 후보군을 라벨로 전부 붙여준다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl label node 노드명 egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>pool</span><span style="color: #94E2D5;">=</span><span style="color: #CBA6F7;">default</span><span style="color: #94E2D5;"> --</span><span>overwrite</span></span>
+<span class="giallo-l"><span>kubectl get nodes</span><span style="color: #94E2D5;"> -</span><span>L egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>pool</span></span></code></pre>
+<p>적으면 어쩔 수 없고, 2개 이상으로 해놓으면 자동으로 회복되도록 하는 것이 가능하다.</p>
+<br>
+<br>
+<br>
+<h2 id="kube-vip-demonses-mandeulgi">kube-vip 데몬셋 만들기</h2>
+<p>그리고 kube-vip용 기본 데몬셋을 하나 정의해준다.<br />
+이건 아까 라벨을 붙인 노드에만 실행되며, 핵심 컴포넌트가 될 것이다. wan을 여러개 붙이더라도 이건 한번만 만들어도 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span># kube</span><span style="color: #94E2D5;">-</span><span>vip egress</span><span style="color: #89B4FA;font-style: italic;"> VIP</span><span> (services mode) — WAN 하나당 LoadBalancer Service</span><span style="color: #89B4FA;font-style: italic;"> 하나</span><span> (</span><span style="color: #FAB387;">04</span><span style="color: #94E2D5;">-</span><span>vips</span><span style="color: #94E2D5;">/</span><span>)</span></span>
+<span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> Namespace</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">---</span></span>
+<span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> apps</span><span style="color: #94E2D5;">/</span><span>v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> DaemonSet</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span><span style="color: #94E2D5;">-</span><span>svc</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>system</span></span>
+<span class="giallo-l"><span>  labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    app</span><span style="color: #94E2D5;">.</span><span>kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span></span>
+<span class="giallo-l"><span>    app</span><span style="color: #94E2D5;">.</span><span>kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>instance</span><span style="color: #9399B2;">:</span><span> svc</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  selector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    matchLabels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span><span style="color: #94E2D5;">-</span><span>svc</span></span>
+<span class="giallo-l"><span>  template</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span><span style="color: #94E2D5;">-</span><span>svc</span></span>
+<span class="giallo-l"><span>        app</span><span style="color: #94E2D5;">.</span><span>kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span></span>
+<span class="giallo-l"><span>        app</span><span style="color: #94E2D5;">.</span><span>kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>instance</span><span style="color: #9399B2;">:</span><span> svc</span></span>
+<span class="giallo-l"><span>    spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      hostNetwork</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span>
+<span class="giallo-l"><span>      serviceAccountName</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span></span>
+<span class="giallo-l"><span>      nodeSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>pool</span><span style="color: #9399B2;">:</span><span style="color: #CBA6F7;"> default</span></span>
+<span class="giallo-l"><span>      tolerations</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> operator</span><span style="color: #9399B2;">:</span><span> Exists</span></span>
+<span class="giallo-l"><span>          effect</span><span style="color: #9399B2;">:</span><span> NoSchedule</span></span>
+<span class="giallo-l"><span>      containers</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span></span>
+<span class="giallo-l"><span>          image</span><span style="color: #9399B2;">:</span><span> ghcr</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">/</span><span>kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #9399B2;">:</span><span>v1</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">2.4</span></span>
+<span class="giallo-l"><span>          args</span><span style="color: #9399B2;">:</span><span> [manager]</span></span>
+<span class="giallo-l"><span>          env</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>            # Node name 은 반드시 downwardAPI 로 넘겨야 kube</span><span style="color: #94E2D5;">-</span><span>vip 가 올바른 k8s 노드에 label 패치 가능</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span> name</span><span style="color: #9399B2;">:</span><span> NODE_NAME</span></span>
+<span class="giallo-l"><span>              valueFrom</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>                fieldRef</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>                  fieldPath</span><span style="color: #9399B2;">:</span><span> spec</span><span style="color: #94E2D5;">.</span><span>nodeName</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_nodename</span></span>
+<span class="giallo-l"><span>              valueFrom</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>                fieldRef</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>                  fieldPath</span><span style="color: #9399B2;">:</span><span> spec</span><span style="color: #94E2D5;">.</span><span>nodeName</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_arp</span><span style="color: #9399B2;">,</span><span>              value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_cidr</span><span style="color: #9399B2;">,</span><span>             value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;32&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> cp_enable</span><span style="color: #9399B2;">,</span><span>            value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;false&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> lb_enable</span><span style="color: #9399B2;">,</span><span>            value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;false&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> svc_enable</span><span style="color: #9399B2;">,</span><span>           value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> svc_election</span><span style="color: #9399B2;">,</span><span>         value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> svc_namespace</span><span style="color: #9399B2;">,</span><span>        value</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> lb_class_name</span><span style="color: #9399B2;">,</span><span>        value</span><span style="color: #9399B2;">:</span><span> myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>egress</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> lb_class_only</span><span style="color: #9399B2;">,</span><span>        value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> lb_class_legacy_handling</span><span style="color: #9399B2;">,</span><span> value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;false&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_leaseduration</span><span style="color: #9399B2;">,</span><span>    value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;5&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_renewdeadline</span><span style="color: #9399B2;">,</span><span>    value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;3&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_retryperiod</span><span style="color: #9399B2;">,</span><span>      value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;1&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> enable_node_labeling</span><span style="color: #9399B2;">,</span><span> value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span>            # hostNetwork 라</span><span style="color: #9399B2;"> :</span><span style="color: #FAB387;">2112</span><span> 는 control</span><span style="color: #94E2D5;">-</span><span>plane kube</span><span style="color: #94E2D5;">-</span><span>vip 가 이미 점유</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> prometheus_server</span><span style="color: #9399B2;">,</span><span>    value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;:2113&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span>          securityContext</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>            capabilities</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>              add</span><span style="color: #9399B2;">:</span><span> [NET_ADMIN</span><span style="color: #9399B2;">,</span><span> NET_RAW]</span></span></code></pre><br>
+<br>
+<br>
+<h2 id="kube-vip-seobiseu-mandeulgi">kube-vip 서비스 만들기</h2>
+<p>이건 wan마다 하나씩 만들면 된다.<br />
+wan4만 먼저 만들어보겠다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> Service</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> egress</span><span style="color: #94E2D5;">-</span><span>wan4</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span></span>
+<span class="giallo-l"><span>  labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    app</span><span style="color: #94E2D5;">.</span><span>kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span></span>
+<span class="giallo-l"><span>  annotations</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>loadbalancerIPs</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;192.168.88.222&quot;</span></span>
+<span class="giallo-l"><span>    kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>allow</span><span style="color: #94E2D5;">-</span><span>reconcile</span><span style="color: #94E2D5;">-</span><span>without</span><span style="color: #94E2D5;">-</span><span>endpoints</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  type</span><span style="color: #9399B2;">:</span><span> LoadBalancer</span></span>
+<span class="giallo-l"><span>  loadBalancerClass</span><span style="color: #9399B2;">:</span><span> myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>egress</span><span style="color: #94E2D5;">-</span><span>vip</span></span>
+<span class="giallo-l"><span>  externalTrafficPolicy</span><span style="color: #9399B2;">:</span><span> Cluster</span></span>
+<span class="giallo-l"><span>  ports</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> name</span><span style="color: #9399B2;">:</span><span> unused</span></span>
+<span class="giallo-l"><span>      port</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 65535</span></span>
+<span class="giallo-l"><span>      protocol</span><span style="color: #9399B2;">:</span><span> TCP</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">---</span></span>
+<span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> discovery</span><span style="color: #94E2D5;">.</span><span>k8s</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> EndpointSlice</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> egress</span><span style="color: #94E2D5;">-</span><span>wan4</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span></span>
+<span class="giallo-l"><span>  labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>service</span><span style="color: #94E2D5;">-</span><span>name</span><span style="color: #9399B2;">:</span><span> egress</span><span style="color: #94E2D5;">-</span><span>wan4</span></span>
+<span class="giallo-l"><span>addressType</span><span style="color: #9399B2;">:</span><span> IPv4</span></span>
+<span class="giallo-l"><span>endpoints</span><span style="color: #9399B2;">:</span><span> []</span></span></code></pre>
+<p>적당히 만들어주고, 여기까지 됐으면 이제 라우터에 들어가서 설정해주면 된다.</p>
+<br>
+<br>
+<br>
+<h2 id="rauteo-seoljeong-microtik">라우터 설정 (microtik)</h2>
+<p>자. 이제 해야할 것은 아까 매핑해놓은 vip를 특정 wan로 나가도록 최종 매핑을 해주는 것이다.<br />
+이건 microtik의 예시이긴 한데, 어떤 라우터든 거의 비슷하게 처리할 수 있을 것이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span># 라우팅 테이블 만들기</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">/</span><span>routing table add fib name</span><span style="color: #94E2D5;">=</span><span>egress</span><span style="color: #94E2D5;">-</span><span>wan4</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># </span><span style="color: #FAB387;">192.168</span><span style="color: #94E2D5;">.</span><span>88</span><span style="color: #94E2D5;">.</span><span>222에서 시작된 연결에 마킹</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">/</span><span>ip firewall mangle add chain</span><span style="color: #94E2D5;">=</span><span>prerouting src</span><span style="color: #94E2D5;">-</span><span>address</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.222</span><span> action</span><span style="color: #94E2D5;">=</span><span>mark</span><span style="color: #94E2D5;">-</span><span>connection</span><span style="color: #CBA6F7;font-weight: bold;"> new</span><span style="color: #94E2D5;">-</span><span>connection</span><span style="color: #94E2D5;">-</span><span>mark</span><span style="color: #94E2D5;">=</span><span>egress</span><span style="color: #94E2D5;">-</span><span>wan4 passthrough</span><span style="color: #94E2D5;">=</span><span>yes comment</span><span style="color: #94E2D5;">=</span><span style="color: #A6E3A1;">&quot;egress VIP .222 to wan4 conn&quot;</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">/</span><span>ip firewall mangle add chain</span><span style="color: #94E2D5;">=</span><span>prerouting src</span><span style="color: #94E2D5;">-</span><span>address</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.222</span><span> connection</span><span style="color: #94E2D5;">-</span><span>mark</span><span style="color: #94E2D5;">=</span><span>egress</span><span style="color: #94E2D5;">-</span><span>wan4 action</span><span style="color: #94E2D5;">=</span><span>mark</span><span style="color: #94E2D5;">-</span><span>routing</span><span style="color: #CBA6F7;font-weight: bold;"> new</span><span style="color: #94E2D5;">-</span><span>routing</span><span style="color: #94E2D5;">-</span><span>mark</span><span style="color: #94E2D5;">=</span><span>egress</span><span style="color: #94E2D5;">-</span><span>wan4 passthrough</span><span style="color: #94E2D5;">=</span><span>no comment</span><span style="color: #94E2D5;">=</span><span style="color: #A6E3A1;">&quot;egress wan4 routing-mark&quot;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># egress</span><span style="color: #94E2D5;">-</span><span>wan4 라우팅 테이블에 경로</span><span style="color: #EBA0AC;font-style: italic;"> 추가</span><span style="color: #CBA6F7;"> =&gt;</span><span> wan4로 나가도록</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">/</span><span>ip route add dst</span><span style="color: #94E2D5;">-</span><span>address</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">0.0</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">0.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">0</span><span> gateway</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">61.74</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">171.254</span><span style="color: #94E2D5;">%</span><span>wan4 routing</span><span style="color: #94E2D5;">-</span><span>table</span><span style="color: #94E2D5;">=</span><span>egress</span><span style="color: #94E2D5;">-</span><span>wan4 distance</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">1</span><span> comment</span><span style="color: #94E2D5;">=</span><span style="color: #A6E3A1;">&quot;egress wan4 route&quot;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># 최종 NAT 처리</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">/</span><span>ip firewall nat add chain</span><span style="color: #94E2D5;">=</span><span>srcnat out</span><span style="color: #94E2D5;">-</span><span>interface</span><span style="color: #94E2D5;">=</span><span>wan4 action</span><span style="color: #94E2D5;">=</span><span>masquerade comment</span><span style="color: #94E2D5;">=</span><span style="color: #A6E3A1;">&quot;egress SNAT via wan4&quot;</span></span></code></pre>
+<p><img src="/images/img_8d75865f05800b56.png" alt="" />
+오류 없이 잘 되면 된 것이다.</p>
+<br>
+<br>
+<br>
+<h2 id="geiteuwei-jeongcaeg-saengseong">게이트웨이 정책 생성</h2>
+<p>이제 다시 적절히 맞춰서 게이트웨이 정책을 만들어주면 끝이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> cilium</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>v2</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> CiliumEgressGatewayPolicy</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> egress</span><span style="color: #94E2D5;">-</span><span>wan4</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  selectors</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> podSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        matchLabels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>          egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>profile</span><span style="color: #9399B2;">:</span><span> wan4</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  destinationCIDRs</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span style="color: #FAB387;"> 0.0</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">0.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">0</span></span>
+<span class="giallo-l"><span>  excludedCIDRs</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span style="color: #FAB387;"> 10.42</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">0.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">16</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span style="color: #FAB387;"> 10.43</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">0.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">16</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span style="color: #FAB387;"> 192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">24</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  egressGateway</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    nodeSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      matchLabels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        egress</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>pool</span><span style="color: #9399B2;">:</span><span style="color: #CBA6F7;"> default</span></span>
+<span class="giallo-l"><span>        service</span><span style="color: #94E2D5;">-</span><span>provided</span><span style="color: #94E2D5;">.</span><span>kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>egress</span><span style="color: #94E2D5;">-</span><span>wan4</span><span style="color: #94E2D5;">.</span><span>kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>egress</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;192.168.88.222&quot;</span></span>
+<span class="giallo-l"><span>    egressIP</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.222</span></span></code></pre>
+<p>이러면 저 vip를 들고 있는 놈을 게이트웨이로 삼아서 동적으로 가리킬 수 있다.</p>
+<p>여기까지 하면 끝이다. 필요한만큼 wan 세트를 추가하고, 게이트웨이 노드로 선택된 녀석을 터뜨려서 복구가 되는지 확인까지 해보면 된다.</p>
+<br>
+<br>
+<br>
+<h2 id="hangye">한계</h2>
+<p>이 방식에는 몇가지 한계점들이 존재한다. 몇가지는 Cilium Egress의 근본적인 한계점이기도 하다.</p>
+<br>
+<br>
+<h4 id="dauntaim">다운타임</h4>
+<p>게이트웨이 노드가 죽으면, vip를 통해서 계승받고 복구되기까지 보통 몇초 정도의 다운타임이 발생한다.<br />
+이건 완전히 없애기 어렵다. 복구를 빠르게, 자동으로 처리해줄 뿐이다.</p>
+<br>
+<br>
+<h4 id="nodeu-gwabuha">노드 과부하</h4>
+<p>일단 Egress Gateway Policy가 사용하는 최종 게이트웨이 노드는 하나다. 그래서 부하가 과도하게 몰리는 것 자체를 깔끔하게 해결하진 않는다.</p>
+<p>가장 단순한 완화 방법은, 같은 WAN으로 라우팅되는 내부 IP를 여러개 만들고, 각각 하나씩 Egress Gateway를 만들어서 직접 분산을 시키는 것이다.</p>
+<p>이런 식으로 말이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span style="color: #FAB387;">192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.222</span><span> → gateway</span><span style="color: #94E2D5;">-</span><span style="color: #FAB387;">1</span><span> → WAN4</span></span>
+<span class="giallo-l"><span style="color: #FAB387;">192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.223</span><span> → gateway</span><span style="color: #94E2D5;">-</span><span style="color: #FAB387;">2</span><span> → WAN4</span></span>
+<span class="giallo-l"><span style="color: #FAB387;">192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.224</span><span> → gateway</span><span style="color: #94E2D5;">-</span><span style="color: #FAB387;">3</span><span> → WAN4</span></span></code></pre>
+<p>대신 관리나 사용이 좀 복잡해진다.</p>
+<br>
+<br>
+<h4 id="egress-dilrei">Egress 딜레이</h4>
+<p>cilium egress 라우팅 자체에도 딜레이가 있다. 이게 사실 Pod가 뜰때 바로 붙는게 아니라, 비동기적으로 나중에 붙는다.</p>
+<p>그래서 컨테이너가 시작되고 몇초 정도는 원래의 IP로 나갈 수 있다. 이걸 방지하려면 그냥 컨테이너에 시작 대기시간을 넣거나, 원하는 IP가 붙을때까지 프로그램 시작을 지연시키는 스크립트를 박거나 해야한다.</p>
+<br>
+<br>
+<br>
+<p>참조<br />
+<a rel="external" href="https://christianhuth.de/a-highly-available-egress-gateway-for-kubernetes-with-cilium-and-kube-vip/">https://christianhuth.de/a-highly-available-egress-gateway-for-kubernetes-with-cilium-and-kube-vip/</a><br />
+<a rel="external" href="https://tech.kakaopay.com/post/cilium-egress-gateway/">https://tech.kakaopay.com/post/cilium-egress-gateway/</a><br />
+<a rel="external" href="https://docs.cilium.io/en/stable/network/egress-gateway/egress-gateway/">https://docs.cilium.io/en/stable/network/egress-gateway/egress-gateway/</a><br />
+<a rel="external" href="https://cilium.io/use-cases/egress-gateway/">https://cilium.io/use-cases/egress-gateway/</a><br />
+<a rel="external" href="https://blog.naver.com/sssang97/224428580085">https://blog.naver.com/sssang97/224428580085</a><br />
+<a rel="external" href="https://blog.naver.com/sssang97/224428274080">https://blog.naver.com/sssang97/224428274080</a><br />
+<a rel="external" href="https://blog.naver.com/sssang97/224425032860">https://blog.naver.com/sssang97/224425032860</a></p>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224272720652/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>k3k 출시 (쿠버 위에 쿠버).link<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224433117827/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>WireGuard로 가상 사설망 구성해보기 (microtik)<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>

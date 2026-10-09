@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[k8s] kube-vip | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224428580085/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[k8s] kube-vip">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224428580085/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-10-09T17:40:16.642008517+00:00">
+    <meta property="article:published_time" content="2026-10-01T10:24:49.571350+00:00">
+    <meta property="article:tag" content="Kubernetes">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224428580085/">[k8s] kube-vip</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-10-01T10:24:49.57135+00:00"><time datetime="2026-10-01T10:24:49.57135+00:00">2026.10.01</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="370 words"><time datetime="PT2M">2 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/kubernetes/">Kubernetes</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224428580085" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p><img src="/images/img_c69884387821b4c6.png" alt="" />
+쿠버네티스를 고가용성으로 구성한다고 했을때, 걸리는 것 중 하나가 이것이다.<br />
+"그러면 kube API 엔드포인트는 어떻게 HA를 보장하는가?"</p>
+<p>결국 쿠버 내 일부 리소스들도 kube API에 쏴서 이런저런 동작을 처리하거나 하는데, 쿠버의 일부 하위 시스템들은 이걸 HA 기반으로 처리하기가 어렵다.</p>
+<p>control plane 노드가 3개 있다고 하면 어느 노드에 찔러야 할까? 노드가 하나 죽으면 다른 노드로 어떻게 옮겨야할까?<br />
+일반적인 Pod들은 자체적인 kubernetes.default.svc 서비스 계층을 통해서 이걸 자동으로 처리해주는데, 서비스를 쓸 수 없는 kube-proxy(혹은 CNI), kubelet, kube agent들은 그 혜택을 누리지 못해서 엔드포인트 노드가 뻗으면 통신을 하지 못한다.</p>
+<p>이 문제를 해결하는 도구 중 하나가 kube-vip다.<br />
+별도의 LB를 신뢰성 높은 계층에 구축해도 되지만, 이건 합의 기반으로 control plane 노드들이 자체적으로 리더를 뽑고 선택을 할 수 있게 한다. 그리고 해당 리더 노드가 API 엔드포인트가 된다.<br />
+이러면 가상 내부 IP를 통해 특정 노드가 죽더라도, 가상 IP를 통해서 다른 노드가 완장을 잡고 통신을 할 수 있게 해준다.</p>
+<br>
+<br>
+<br>
+<h2 id="gijon-k3se-seolcihagi">기존 k3s에 설치하기</h2>
+<p>먼저 VIP로 사용할 IP를 정해야한다.<br />
+LAN 내에서 ARP 기반으로 진짜 존재하는 것처럼 동작할 것이므로, 망 내에서 고유해야 한다.<br />
+난 192.168.88.250로 적당히 잡았다.</p>
+<p>그리고 다음과 같이 리소스를 생성한다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl apply</span><span style="color: #94E2D5;"> -</span><span>f https</span><span style="color: #9399B2;">:</span><span style="color: #9399B2;font-style: italic;">//kube-vip.io/manifests/rbac.yaml</span></span>
+<span class="giallo-l"><span>kubectl apply</span><span style="color: #94E2D5;"> -</span><span>f kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>ds</span><span style="color: #94E2D5;">.</span><span>yaml # 아래 파일</span></span></code></pre><pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> apps</span><span style="color: #94E2D5;">/</span><span>v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> DaemonSet</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>ds</span></span>
+<span class="giallo-l"><span>  namespace</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>system</span></span>
+<span class="giallo-l"><span>  labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    app</span><span style="color: #94E2D5;">.</span><span>kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>ds</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  selector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    matchLabels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>ds</span></span>
+<span class="giallo-l"><span>  template</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      labels</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">-</span><span>ds</span></span>
+<span class="giallo-l"><span>    spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      hostNetwork</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span>
+<span class="giallo-l"><span>      serviceAccountName</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span></span>
+<span class="giallo-l"><span>      nodeSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        node</span><span style="color: #94E2D5;">-</span><span>role</span><span style="color: #94E2D5;">.</span><span>kubernetes</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>control</span><span style="color: #94E2D5;">-</span><span>plane</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span></span>
+<span class="giallo-l"><span>      tolerations</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> operator</span><span style="color: #9399B2;">:</span><span> Exists</span></span>
+<span class="giallo-l"><span>          effect</span><span style="color: #9399B2;">:</span><span> NoSchedule</span></span>
+<span class="giallo-l"><span>      containers</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> name</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>vip</span></span>
+<span class="giallo-l"><span>          image</span><span style="color: #9399B2;">:</span><span> ghcr</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #94E2D5;">/</span><span>kube</span><span style="color: #94E2D5;">-</span><span>vip</span><span style="color: #9399B2;">:</span><span>v1</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">2.4</span></span>
+<span class="giallo-l"><span>          args</span><span style="color: #9399B2;">:</span><span> [manager]</span></span>
+<span class="giallo-l"><span>          env</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_arp</span><span style="color: #9399B2;">,</span><span>            value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> port</span><span style="color: #9399B2;">,</span><span>               value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;6443&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_cidr</span><span style="color: #9399B2;">,</span><span>           value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;32&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> cp_enable</span><span style="color: #9399B2;">,</span><span>          value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> cp_namespace</span><span style="color: #9399B2;">,</span><span>       value</span><span style="color: #9399B2;">:</span><span> kube</span><span style="color: #94E2D5;">-</span><span>system</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_leaderelection</span><span style="color: #9399B2;">,</span><span> value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_leaseduration</span><span style="color: #9399B2;">,</span><span>  value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;15&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_renewdeadline</span><span style="color: #9399B2;">,</span><span>  value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;10&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> vip_retryperiod</span><span style="color: #9399B2;">,</span><span>    value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;2&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">            -</span><span style="color: #9399B2;"> {</span><span> name</span><span style="color: #9399B2;">:</span><span> address</span><span style="color: #9399B2;">,</span><span>            value</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;가상IP&quot;</span><span style="color: #9399B2;"> }</span></span>
+<span class="giallo-l"><span>          securityContext</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>            capabilities</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>              add</span><span style="color: #9399B2;">:</span><span> [NET_ADMIN</span><span style="color: #9399B2;">,</span><span> NET_RAW]</span></span></code></pre>
+<p>방금 VIP로 쓰기로 결정한걸 저기 주소에 박으면 된다.<br />
+그리고 control plane 노드에만 자동으로 실행되게 했다.</p>
+<p>저걸 다 띄우고, control plane 노드의 에이전트 파일을 전부 열어서, tls-san 목록에 방금 VIP를 전부 추가한다.</p>
+<p><img src="/images/img_6b9cba380db6cc92.png" alt="" /></p>
+<p><img src="/images/img_de51cff19c5f2b98.png" alt="" />
+그리고 tls 목록에 VIP를 추가하고 재부팅해준다.<br />
+나중에 control plane으로 노드를 추가할 때도 항상 VIP를 추가로 넣어줘야 한다.</p>
+<br>
+<p><img src="/images/img_1d71d97667e6c076.png" alt="" />
+그리고 이렇게 통신이 되면 네트워크는 잘 엮인 것이다.<br />
+이 다음에, cilium을 쓴다면 cilium 세팅도 VIP를 가리키도록 하면 되는데, 그건 하단에 정리해놨다.</p>
+<p>그리고 control plane이 아닌 워커 노드들도 VIP를 가리키도록 바꿔준다.<br />
+그래야 노드 하나 뻗었을때도 통신이 유지된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>sudo sed</span><span style="color: #94E2D5;"> -</span><span>i</span><span style="color: #A6E3A1;"> &#39;s|https://192.168.88.202:6443|https://192.168.88.250:6443|&#39;</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>systemd</span><span style="color: #94E2D5;">/</span><span>system</span><span style="color: #94E2D5;">/</span><span>k3s</span><span style="color: #94E2D5;">-</span><span>agent</span><span style="color: #94E2D5;">.</span><span>service</span><span style="color: #94E2D5;">.</span><span>env</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>sudo systemctl daemon</span><span style="color: #94E2D5;">-</span><span>reload</span></span>
+<span class="giallo-l"><span>sudo systemctl restart k3s</span><span style="color: #94E2D5;">-</span><span>agent</span></span></code></pre>
+<p><img src="/images/img_5c8a64d660d90e83.png" alt="" /></p>
+<br>
+<br>
+<br>
+<h2 id="ciliume-vip-jeogyong-with-helm">Cilium에 VIP 적용 (with helm)</h2>
+<p>Cilium을 CNI로 쓸 경우에 해당되는 부분이다. 그리고 helm으로 설치해놨다고 가정한다.</p>
+<p><img src="/images/img_8e932ece4879aeba.png" alt="" />
+serviceHost를 VIP로 바꿔주고</p>
+<br>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>helm upgrade cilium cilium</span><span style="color: #94E2D5;">/</span><span>cilium</span><span style="color: #94E2D5;"> -</span><span>n kube</span><span style="color: #94E2D5;">-</span><span>system \</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">  --</span><span>version</span><span style="color: #FAB387;"> 1.20</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">2</span><span> \</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">  -</span><span>f cilium</span><span style="color: #94E2D5;">/</span><span>values</span><span style="color: #94E2D5;">.</span><span>yaml</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>kubectl</span><span style="color: #94E2D5;"> -</span><span>n kube</span><span style="color: #94E2D5;">-</span><span>system rollout restart ds</span><span style="color: #94E2D5;">/</span><span>cilium</span></span>
+<span class="giallo-l"><span>kubectl</span><span style="color: #94E2D5;"> -</span><span>n kube</span><span style="color: #94E2D5;">-</span><span>system rollout status ds</span><span style="color: #94E2D5;">/</span><span>cilium</span></span></code></pre>
+<p><img src="/images/img_06b08f9c5fbf3868.png" alt="" />
+재설치한다.</p>
+<p>그렇게 해서 이 값이 VIP로 나오면 잘 된 것이다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl</span><span style="color: #94E2D5;"> -</span><span>n kube</span><span style="color: #94E2D5;">-</span><span>system exec ds</span><span style="color: #94E2D5;">/</span><span>cilium</span><span style="color: #94E2D5;"> --</span><span> sh</span><span style="color: #94E2D5;"> -</span><span>c</span><span style="color: #A6E3A1;"> &#39;echo &quot;KUBERNETES_SERVICE_HOST=$KUBERNETES_SERVICE_HOST&quot;&#39;</span></span></code></pre>
+<p><img src="/images/img_ae5ed876a3dc5c77.png" alt="" /></p>
+<br>
+<br>
+<p>참조<br />
+<a rel="external" href="https://kube-vip.io/docs/usage/k3s/">https://kube-vip.io/docs/usage/k3s/</a><br />
+<a rel="external" href="https://kube-vip.io/">https://kube-vip.io/</a><br />
+<a rel="external" href="https://medium.com/@siddharthsid533/how-i-got-kube-vip-working-with-my-k3s-cluster-without-breaking-things-668100703d5c">https://medium.com/@siddharthsid533/how-i-got-kube-vip-working-with-my-k3s-cluster-without-breaking-things-668100703d5c</a></p>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224433117827/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>WireGuard로 가상 사설망 구성해보기 (microtik)<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224428481888/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>[k8s] k3s: etcd로 마이그레이션하기<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>

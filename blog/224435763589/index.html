@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[k8s] Longhorn | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224435763589/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[k8s] Longhorn">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224435763589/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-10-09T17:40:16.642008517+00:00">
+    <meta property="article:published_time" content="2026-10-08T14:52:34.759629+00:00">
+    <meta property="article:tag" content="Kubernetes">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224435763589/">[k8s] Longhorn</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-10-08T14:52:34.759629+00:00"><time datetime="2026-10-08T14:52:34.759629+00:00">2026.10.08</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="578 words"><time datetime="PT3M">3 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/kubernetes/">Kubernetes</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224435763589" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p><img src="/images/img_72c306ceb625e2fc.png" alt="" />
+Longhorn은 쿠버네티스용 분산 "블록" 스토리지 시스템이다.<br />
+오픈소스이고, 블록 스토리지를 지원한다.</p>
+<p>이걸 잘 깔면 볼륨을 분산 구성으로 고가용성-고성능을 보장하면서 사용할 수 있다.</p>
+<p>그리고 다른 블록 스토리지들에 비해서 사용이나 구성이 간편한 편이다.</p>
+<br>
+<br>
+<br>
+<h2 id="gibon-gujo">기본 구조</h2>
+<p>구조도 꽤 간단한 편에 속한다.<br />
+롱혼 클러스터의 노드마다 Manager라는 것을 띄우는데, 이 Manager가 최종 스토리지를 관리하고, 볼륨 생성 요청 등을 받아서 처리하는 주요 작업을 다 담당한다.</p>
+<p><img src="/images/img_b6ec3f68f0201cda.png" alt="" />
+<a rel="external" href="https://longhorn.io/docs/1.12.1/concepts/">https://longhorn.io/docs/1.12.1/concepts/</a><br />
+그 외에는 그다지 복잡한 것은 없다.</p>
+<p>롱혼은 볼륨을 생성하고 파일을 쓰면, 동일한 복제본을 여러개 생성해서 손실을 방지한다.<br />
+이건 v1/v2마다 동작 방식이 판이하게 다른데, v1은 그냥 그 블록을 통째로 복제하지만, v2는 청크 단위로 쪼개서 분할 저장하는 방식을 사용한다.<br />
+v2는 이 글을 쓰는 시점에서는 아직 실험 단계다. 그래서 여기서도 v1을 기준으로 다룬다.</p>
+<p>현재 롱혼에서 제공하는 주요 기능 요소는 대략 이 정도다.</p>
+<ol>
+<li>편리한 UI 기반 제어 기능</li>
+<li>고가용성 옵션</li>
+<li>자동 증분형 스냅샷 (S3 등)</li>
+<li>백업 기능</li>
+</ol>
+<br>
+<p>특히 스냅샷 기능을 주요한 강점을 내세우는 편이다. 별도 공간에 스냅샷을 저장해놨다가, 원하는 시점의 스냅샷으로 볼륨을 롤백할 수 있다.</p>
+<br>
+<br>
+<br>
+<h2 id="vs-ceph">vs Ceph</h2>
+<p>구성이나 관리가 간편하다는 것이 가장 큰 장점이지만, 고전인 ceph에 비하면 기능 범위가 좁은 편이다.<br />
+IOPS 제한이라든가 하는 고급 기능들, 세부적인 옵션들, 다년간 축적된 관리 경험들이 필요하다면 ceph를 선택하는 것이 좋다.</p>
+<p>하지만 디스크를 그렇게 빡세게 굴릴 것이 아니고, 클러스터 규모가 막 엄청 크지 않다고 하면 longhorn 정도로도 충분히 요구사항을 충족할 수 있을 것이다. 딱 가볍게 적당히 복구되는 볼륨 매니저 쓰는 느낌으로는 충분하다.</p>
+<br>
+<p>말이 길었다.<br />
+자, 그럼 이제 설치해서 사용까지 한번 해보자.</p>
+<br>
+<br>
+<br>
+<h2 id="nodeue-rabel-dalgi">노드에 라벨 달기</h2>
+<p>우선 longhorn을 실행시킬 노드를 3개 이상 선별해서 라벨을 단다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>kubectl label node 노드1 노드2 노드3 \</span></span>
+<span class="giallo-l"><span>  node</span><span style="color: #94E2D5;">.</span><span>longhorn</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>create</span><span style="color: #94E2D5;">-</span><span style="color: #CBA6F7;">default</span><span style="color: #94E2D5;">-</span><span>disk</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">true</span><span> \</span></span>
+<span class="giallo-l"><span>  storage</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>longhorn</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">true</span></span></code></pre>
+<p>그럼 추후 설치할때 여기에 longhorn 서버를 띄우게 될 것이다.</p>
+<br>
+<br>
+<br>
+<h2 id="sajeon-jongsogseong-nodeu-hoseuteu">사전 종속성 (노드 호스트)</h2>
+<p>iscsid란 것을 포함해 이런저런 도구들을 필요로 한다. longhorn이 실행되는 모든 노드마다 직접 들어가서 호스트에 설치해줘야 한다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span># </span><span style="color: #89B4FA;font-style: italic;">패키지</span><span> (버전 무관)</span></span>
+<span class="giallo-l"><span>sudo apt</span><span style="color: #94E2D5;">-</span><span>get update</span></span>
+<span class="giallo-l"><span>sudo apt</span><span style="color: #94E2D5;">-</span><span>get install</span><span style="color: #94E2D5;"> -</span><span>y open</span><span style="color: #94E2D5;">-</span><span>iscsi nfs</span><span style="color: #94E2D5;">-</span><span>common jq cryptsetup dmsetup</span></span>
+<span class="giallo-l"><span>sudo systemctl enable</span><span style="color: #94E2D5;"> --</span><span>now iscsid</span></span>
+<span class="giallo-l"><span>systemctl is</span><span style="color: #94E2D5;">-</span><span>active iscsid</span></span></code></pre>
+<p><img src="/images/img_01d31716def73528.png" alt="" /></p>
+<p>그리고 커널 모듈도 로드해준다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>sudo modprobe nfs</span></span>
+<span class="giallo-l"><span>sudo modprobe dm_crypt</span></span>
+<span class="giallo-l"><span>echo</span><span style="color: #94E2D5;"> -</span><span>e</span><span style="color: #A6E3A1;"> &quot;nfs</span><span style="color: #F5C2E7;">\n</span><span style="color: #A6E3A1;">dm_crypt&quot;</span><span style="color: #94E2D5;"> |</span><span> sudo tee</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>modules</span><span style="color: #94E2D5;">-</span><span>load</span><span style="color: #94E2D5;">.</span><span>d</span><span style="color: #94E2D5;">/</span><span>longhorn</span><span style="color: #94E2D5;">.</span><span>conf</span></span></code></pre>
+<p>여기까지 됐다면, 그 다음부터는 클러스터 레벨에서 설정이 가능하다.</p>
+<br>
+<br>
+<br>
+<h2 id="jeonyong-cli-seolci-geomjeung-optional">전용 CLI 설치 &amp; 검증 (optional)</h2>
+<p>이런저런 편의성 기능을 전용 CLI로 제공한다.<br />
+설치 전 최종 검수나 잡다한 유틸 기능을 제공한다.</p>
+<p>여기서는 설치 전에 요건이 다 갖춰졌는지 검사하는 용도로만 쓰겠다.<br />
+믿음이 충분하다면 스킵해도 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>curl</span><span style="color: #94E2D5;"> -</span><span>sSfL</span><span style="color: #94E2D5;"> -</span><span>o longhornctl https</span><span style="color: #9399B2;">:</span><span style="color: #9399B2;font-style: italic;">//github.com/longhorn/cli/releases/download/v1.12.1/longhornctl-linux-amd64</span></span>
+<span class="giallo-l"><span>chmod</span><span style="color: #94E2D5;"> +</span><span>x longhornctl</span></span>
+<span class="giallo-l"><span>sudo mv longhornctl</span><span style="color: #94E2D5;"> /</span><span>usr</span><span style="color: #94E2D5;">/</span><span>local</span><span style="color: #94E2D5;">/</span><span>bin</span><span style="color: #94E2D5;">/</span></span></code></pre>
+<p>KUBECONFIG 파일을 넘겨서 preflight를 한번 날리면</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>sudo longhornctl check preflight</span><span style="color: #94E2D5;"> --</span><span>kubeconfig</span><span style="color: #94E2D5;"> /</span><span>etc</span><span style="color: #94E2D5;">/</span><span>rancher</span><span style="color: #94E2D5;">/</span><span>k3s</span><span style="color: #94E2D5;">/</span><span>k3s</span><span style="color: #94E2D5;">.</span><span>yaml</span></span></code></pre>
+<p><img src="/images/img_dfe7a3d27910b8fe.png" alt="" /></p>
+<p><img src="/images/img_128f0dcad4e7373d.png" alt="" /></p>
+<p>클러스터에 소속된 모든 노드들에 대해서 검사를 돌려준다.<br />
+에러만 없으면 된다. 워닝도 좀 들어주면 좋고.</p>
+<br>
+<br>
+<br>
+<h2 id="seolci-with-helm">설치 (with helm)</h2>
+<p>가장 편리한 설치 방법은 helm을 쓰는 것이다.<br />
+차트 가져와서 업데이트하고</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>helm repo add longhorn https</span><span style="color: #9399B2;">:</span><span style="color: #9399B2;font-style: italic;">//charts.longhorn.io</span></span>
+<span class="giallo-l"><span>helm repo update</span></span></code></pre>
+<p><img src="/images/img_cb0f87574051bebc.png" alt="" /></p>
+<p>values를 적절히 준비한다. 내 경우에는 이렇게 구성했다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>defaultSettings</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  # 기본 복제 수</span><span style="color: #94E2D5;"> =</span><span style="color: #FAB387;"> 2</span><span> (</span><span style="color: #FAB387;">3</span><span> 노드 중 2개에 저장)</span></span>
+<span class="giallo-l"><span>  defaultReplicaCount</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 2</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  # 라벨 붙은 노드에만</span><span style="color: #CBA6F7;"> default</span><span> disk 자동</span><span style="color: #89B4FA;font-style: italic;"> 생성</span><span> (storage</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>longhorn</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">true</span><span>)</span></span>
+<span class="giallo-l"><span>  createDefaultDiskLabeledNodes</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> true</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  # Degraded 볼륨 자동 재구축 — 노드 복귀 시 자동 sync</span></span>
+<span class="giallo-l"><span>  replicaAutoBalance</span><span style="color: #9399B2;">:</span><span> least</span><span style="color: #94E2D5;">-</span><span>effort</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  # 노드 다운 시 복제본 재구축</span><span style="color: #89B4FA;font-style: italic;"> 지연</span><span> (5분) — 재부팅은 커버</span></span>
+<span class="giallo-l"><span>  replicaReplenishmentWaitInterval</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 300</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  # 디스크 가득참</span><span style="color: #89B4FA;font-style: italic;"> 방지</span><span> (</span><span style="color: #FAB387;">25</span><span style="color: #94E2D5;">%</span><span> 예약)</span></span>
+<span class="giallo-l"><span>  storageReservedPercentageForDefaultDisk</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 25</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  # V2 Data</span><span style="color: #89B4FA;font-style: italic;"> Engine</span><span> (SPDK) 비활성화</span></span>
+<span class="giallo-l"><span>  v2DataEngine</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> false</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>  # Guaranteed engine CPU — 복제 성능 안정화</span></span>
+<span class="giallo-l"><span>  guaranteedInstanceManagerCPU</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 12</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># Longhorn 컴포넌트들을 스토리지 노드에만</span><span style="color: #89B4FA;font-style: italic;"> 배치</span><span> (macmini 제외)</span></span>
+<span class="giallo-l"><span>longhornManager</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  nodeSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    storage</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>longhorn</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>longhornDriver</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  nodeSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    storage</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>longhorn</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span>longhornUI</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  replicas</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 2</span></span>
+<span class="giallo-l"><span>  nodeSelector</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    storage</span><span style="color: #94E2D5;">.</span><span>myyrakle</span><span style="color: #94E2D5;">.</span><span>io</span><span style="color: #94E2D5;">/</span><span>longhorn</span><span style="color: #9399B2;">:</span><span style="color: #A6E3A1;"> &quot;true&quot;</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># CSI 컴포넌트</span></span>
+<span class="giallo-l"><span>csi</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  kubeletRootDir</span><span style="color: #9399B2;">:</span><span style="color: #94E2D5;"> /</span><span style="color: #CBA6F7;">var</span><span>/lib/kubelet</span></span>
+<span class="giallo-l"><span>  attacherReplicaCount</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 2</span></span>
+<span class="giallo-l"><span>  provisionerReplicaCount</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 2</span></span>
+<span class="giallo-l"><span>  resizerReplicaCount</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 2</span></span>
+<span class="giallo-l"><span>  snapshotterReplicaCount</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 2</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># UI Ingress</span><span style="color: #89B4FA;font-style: italic;"> 비활성</span><span> (cloudflared 로 노출 예정)</span></span>
+<span class="giallo-l"><span>ingress</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  enabled</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> false</span></span>
+<span class="giallo-l"></span>
+<span class="giallo-l"><span># StorageClass</span></span>
+<span class="giallo-l"><span>persistence</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  # </span><span style="color: #CBA6F7;">default</span><span> SC 아님 — 기존 local</span><span style="color: #94E2D5;">-</span><span>path 와 충돌 방지</span><span style="color: #9399B2;">,</span><span> Longhorn 쓸 땐 명시</span></span>
+<span class="giallo-l"><span>  defaultClass</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> false</span></span>
+<span class="giallo-l"><span>  defaultClassReplicaCount</span><span style="color: #9399B2;">:</span><span style="color: #FAB387;"> 2</span></span>
+<span class="giallo-l"><span>  # PVC 삭제돼도 PV</span><span style="color: #89B4FA;font-style: italic;"> 유지</span><span> (실수로 데이터 날아가는 거 방지)</span></span>
+<span class="giallo-l"><span>  reclaimPolicy</span><span style="color: #9399B2;">:</span><span> Retain</span></span></code></pre>
+<p>그리고 설치를 날린다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span>helm install longhorn longhorn</span><span style="color: #94E2D5;">/</span><span>longhorn \</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">  --</span><span style="color: #CBA6F7;">namespace</span><span style="color: #F9E2AF;font-style: italic;"> longhorn</span><span>-</span><span style="color: #F9E2AF;font-style: italic;">system</span><span> \</span></span>
+<span class="giallo-l"><span>  --</span><span style="color: #F9E2AF;font-style: italic;">create</span><span>-</span><span style="color: #F9E2AF;font-style: italic;">namespace</span><span> \</span></span>
+<span class="giallo-l"><span>  --</span><span style="color: #F9E2AF;font-style: italic;">version</span><span> 1</span><span style="color: #94E2D5;">.</span><span>12</span><span style="color: #94E2D5;">.</span><span>1 \</span></span>
+<span class="giallo-l"><span>  -</span><span style="color: #F9E2AF;font-style: italic;">f</span><span> /</span><span style="color: #F9E2AF;font-style: italic;">Users</span><span>/</span><span style="color: #F9E2AF;font-style: italic;">myyrakle</span><span>/</span><span style="color: #F9E2AF;font-style: italic;">orca</span><span>/</span><span style="color: #F9E2AF;font-style: italic;">k8s</span><span>/</span><span style="color: #F9E2AF;font-style: italic;">longhorn</span><span>/</span><span style="color: #F9E2AF;font-style: italic;">values</span><span style="color: #94E2D5;">.</span><span style="color: #F9E2AF;font-style: italic;">yaml</span></span></code></pre>
+<p><img src="/images/img_fb5e9c5f32f1d81e.png" alt="" /></p>
+<p><img src="/images/img_eb62275d0874f2e0.png" alt="" />
+완료에는 시간이 약간 걸린다.<br />
+그리고 모든 pod가 오류 없이 실행되면 세팅은 끝난 것이다.</p>
+<br>
+<p><img src="/images/img_3c8d203e5cca1d79.png" alt="" />
+그러면 여기서 frontend를 통해서 관리 페이지에 접속할 수 있다.<br />
+포트포워딩을 하든 터널을 열든 해서 적절히 내부망에서 들어가게 한다.</p>
+<br>
+<br>
+<br>
+<h2 id="gwanriyong-ui-sayonghagi">관리용 UI 사용하기</h2>
+<p>상기한 longhorn-frontend로 들어가면, 로그인 없이 대시보드에 진입할 수 있다.</p>
+<br>
+<p><img src="/images/img_8a6261784470a004.png" alt="" />
+여기서 전반적인 상태나 저장공간 등을 빠르게 볼 수도 있고</p>
+<br>
+<p><img src="/images/img_421cf06317b43d98.png" alt="" />
+노드 목록이나 노드 설정 등을 수정할 수도 있다.</p>
+<p>자, 일단 노드별로 디스크를 얼마나 쓸건지부터 명확하게 지정해줘야 한다.</p>
+<p><img src="/images/img_b0bb46b35a8144ce.png" alt="" />
+오른쪽에 노드와 디스크 수정 버튼이 있는데</p>
+<br>
+<p><img src="/images/img_eb9fbb4d69ca95b1.png" alt="" />
+여기서 이런걸 바꿔주면 된다.<br />
+약간 여유를 두고 현실적인 값으로 잘 넣어준다.</p>
+<br>
+<br>
+<br>
+<h2 id="bolryum-sayonghagi">볼륨 사용하기</h2>
+<p>자, 그러면 이제 밑작업은 다 된 것이다.<br />
+갖다쓰기만 하면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span style="color: #94E2D5;">---</span></span>
+<span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> PersistentVolumeClaim</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> test</span><span style="color: #94E2D5;">-</span><span>pvc</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  accessModes</span><span style="color: #9399B2;">:</span><span> [ReadWriteOnce]</span></span>
+<span class="giallo-l"><span>  storageClassName</span><span style="color: #9399B2;">:</span><span> longhorn</span></span>
+<span class="giallo-l"><span>  resources</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>    requests</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>      storage</span><span style="color: #9399B2;">:</span><span> 2Gi</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">---</span></span>
+<span class="giallo-l"><span>apiVersion</span><span style="color: #9399B2;">:</span><span> v1</span></span>
+<span class="giallo-l"><span>kind</span><span style="color: #9399B2;">:</span><span> Pod</span></span>
+<span class="giallo-l"><span>metadata</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  name</span><span style="color: #9399B2;">:</span><span> test</span><span style="color: #94E2D5;">-</span><span>pod</span></span>
+<span class="giallo-l"><span>spec</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>  containers</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> name</span><span style="color: #9399B2;">:</span><span> busybox</span></span>
+<span class="giallo-l"><span>      image</span><span style="color: #9399B2;">:</span><span> busybox</span></span>
+<span class="giallo-l"><span>      command</span><span style="color: #9399B2;">:</span><span> [</span><span style="color: #A6E3A1;">&quot;sh&quot;</span><span style="color: #9399B2;">,</span><span style="color: #A6E3A1;"> &quot;-c&quot;</span><span style="color: #9399B2;">,</span><span style="color: #A6E3A1;"> &quot;echo hello &gt; /data/hello.txt &amp;&amp; sleep 3600&quot;</span><span>]</span></span>
+<span class="giallo-l"><span>      volumeMounts</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">        -</span><span> name</span><span style="color: #9399B2;">:</span><span> data</span></span>
+<span class="giallo-l"><span>          mountPath</span><span style="color: #9399B2;">:</span><span style="color: #94E2D5;"> /</span><span>data</span></span>
+<span class="giallo-l"><span>  volumes</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">    -</span><span> name</span><span style="color: #9399B2;">:</span><span> data</span></span>
+<span class="giallo-l"><span>      persistentVolumeClaim</span><span style="color: #9399B2;">:</span></span>
+<span class="giallo-l"><span>        claimName</span><span style="color: #9399B2;">:</span><span> test</span><span style="color: #94E2D5;">-</span><span>pvc</span></span></code></pre>
+<p>이렇게 PVC를 만들어서 pod에 붙이면, longhorn이 알아서 그만큼을 떼서 붙여준다.</p>
+<br>
+<p><img src="/images/img_0dacb3c1f9928359.png" alt="" /></p>
+<p><img src="/images/img_2767d7d14086ac3e.png" alt="" />
+그리고 UI에서도 볼륨의 사용량이나 실제 노드 배치 등까지 확인할 수 있다.</p>
+<br>
+<br>
+<p>참조<br />
+<a rel="external" href="https://longhorn.io/">https://longhorn.io/</a><br />
+<a rel="external" href="https://longhorn.io/docs/1.12.1/">https://longhorn.io/docs/1.12.1/</a><br />
+<a rel="external" href="https://longhorn.io/docs/1.12.1/concepts/">https://longhorn.io/docs/1.12.1/concepts/</a></p>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224436698996/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>deno가 cloudflare에 인수됨.link<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224435474388/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>[k8s] k3s: 고가용성 Control Plane 구성하기<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>

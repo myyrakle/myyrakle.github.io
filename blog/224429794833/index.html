@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[Rust] 1.99.0 업데이트 발표 (번역) | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224429794833/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[Rust] 1.99.0 업데이트 발표 (번역)">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224429794833/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-10-09T17:40:16.642008517+00:00">
+    <meta property="article:published_time" content="2026-10-06T16:25:37.201425289+00:00">
+    <meta property="article:tag" content="Rust">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224429794833/">[Rust] 1.99.0 업데이트 발표 (번역)</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-10-06T16:25:37.201425289+00:00"><time datetime="2026-10-06T16:25:37.201425289+00:00">2026.10.06</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="563 words"><time datetime="PT3M">3 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/rust/">Rust</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224429794833" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p>https://blog.rust-lang.org/2026/10/01/Rust-1.99.0/</p>
+<p>러스트는 누구든 믿음직하고 효과적인 소프트웨어를 만들 수 있게 도와주는 끝내주는 언어입니다.</p>
+<p>만약 rustup을 통해서 Rust의 이전버전을 설치해놓은 상대라면, 업데이트는 아주 쉽습니다. 그냥 이렇게 치면 돼요.</p>
+<p>rustup update stable</p>
+<p>rustup을 설치한 적이 없다면, 우리 웹사이트의 <a rel="external" href="https://www.rust-lang.org/install.html">설치 페이지</a>에서 받을 수 있습니다. 그리고 깃허브에서 이번 버전에 대한 <a rel="external" href="https://doc.rust-lang.org/stable/releases.html#version-1990-2026-10-01">릴리즈 노트</a>를 참조해보세요.</p>
+<p>미래의 릴리즈를 테스트해서 러스트 팀을 돕고 싶다면, 로컬에서 베타 채널(rustup default beta) 또는 nightly 채널(rustup default nightly)로 업데이트하는 것을 고려할 수 있습니다.</p>
+<p>버그를 발견했다면 <a rel="external" href="https://github.com/rust-lang/rust/issues/new/choose">리포트</a>해주세요!</p>
+<br>
+<br>
+<br>
+<h2 id="1-99-0-stableeneun-mueosi-issnayo">1.99.0 stable에는 무엇이 있나요?</h2>
+<p>ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ</p>
+<h2 id="extern-c-variadics">extern "C" variadics</h2>
+<p>Rust 1.99.0에서는 "C" 및 "C-unwind" ABI를 사용하는 C ABI 가변 인자 함수(variadic function)를 정의하는 기능이 추가되었습니다.</p>
+<p>이 방식으로 정의되는 가변 인자 함수는 가변 인자 목록("...")을 사용하며, 임의 개수의 인자를 받을 수 있습니다.</p>
+<p>기존에도 Rust에서 외부에 정의된 가변 인자 함수(예: "libc::printf")를 호출하는 것은 가능했지만, Rust 1.99부터는 이러한 함수를 Rust 자체에서 직접 작성할 수 있습니다.</p>
+<p><strong>/// SAFETY: 최소 2개의 i32 인자와 함께 호출해야 합니다.</strong>****<br />
+<strong>unsafe extern "C" fn sum(mut args: ...) -&gt; i32 {</strong><br />
+**   **** // SAFETY: 호출자가 이를 보장합니다.******<br />
+**    let a = unsafe { args.next_arg::<i32>() };**<br />
+**    let b = unsafe { args.next_arg::<i32>() };**<br />
+**    a + b**<br />
+<strong>}</strong></p>
+<hr />
+<p><strong>fn foo() -&gt; i32 {</strong><br />
+**    unsafe { sum(0i32, 2i32) }**<br />
+<strong>}</strong></p>
+<p>"..."의 타입은 "<a rel="external" href="https://doc.rust-lang.org/std/ffi/struct.VaList.html">VaList</a>"이며, 모든 타깃에서 C의 "va_list" 타입과 ABI 호환성을 가집니다. "VaList"에서 어떤 타입을 읽을 수 있는지는 <a rel="external" href="https://doc.rust-lang.org/std/ffi/trait.VaArgSafe.html">VaArgSafe</a> trait를 통해 제한됩니다.</p>
+<p>C 가변 인자 함수("c-variadic functions")에 대한 자세한 내용은 <a rel="external" href="https://doc.rust-lang.org/reference/items/functions.html#c-variadic-functions">Reference</a>를 참고하세요.</p>
+<p>또한 이번 릴리스에서는 C ABI가 아닌 naked 가변 인자 함수를 정의하는 기능도 안정화되었습니다. 이러한 함수는 인라인 어셈블리(inline assembly)를 사용해 작성해야 합니다.</p>
+<br>
+<br>
+<br>
+<h2 id="raw-pointereseo-reiaus-jeongbo-gajyeoogi">Raw Pointer에서 레이아웃 정보 가져오기</h2>
+<p>이번 릴리스에서는 Sized 타입과 non-Sized 타입 모두에 대해, raw pointer로부터 크기(size)와 정렬(alignment) 정보를 가져올 때 필요한 safety 요구사항이 명확하게 정립되었습니다.</p>
+<p>이를 위해 다음 세 함수가 안정화되었습니다.</p>
+<p><strong>- Layout::for_value_raw</strong><br />
+<strong>- mem::size_of_val_raw</strong><br />
+<strong>- mem::align_of_val_raw</strong></p>
+<br>
+<br>
+<br>
+<h2 id="box-leak-ihu-dasi-memorireul-haejehaneun-paeteon-bigweonjang">Box::leak 이후 다시 메모리를 해제하는 패턴 비권장</h2>
+<p>Rust 1.99에서는 언어 자체의 의미론이 변경되지는 않았지만, "Box::leak"의 문서가 업데이트되어 "Box::leak"으로 누수시킨 메모리를 나중에 다시 해제하는 패턴을 사용하지 않을 것을 권장하게 되었습니다.</p>
+<p>이러한 코드 패턴이 현재 및 향후 도입될 수 있는 컴파일러 최적화와 문제가 발생할 수 있다는 사실이 확인되었기 때문입니다. 특히 앞으로 안정화될 커스텀 allocator 기능과 함께 사용할 경우 더욱 문제가 될 수 있습니다.</p>
+<p>따라서 이러한 용도로는 "Box::leak" 대신 다음 함수들을 사용하는 것이 권장됩니다.* *</p>
+<ul>
+<li>Box::into_non_null</li>
+<li>Box::into_raw</li>
+</ul>
+<p>이 지침은 표준 라이브러리에 존재하는 다른 "leak" 함수에도 동일하게 적용됩니다.</p>
+<br>
+<br>
+<br>
+<h2 id="stablei-doen-api">Stable이 된 API</h2>
+<p>IntoIterator for Box&lt;[T; N]&gt;<br />
+IntoIterator for &amp;Box&lt;[T; N]&gt;<br />
+IntoIterator for &amp;mut Box&lt;[T; N]&gt;<br />
+VecDeque::retain_back<br />
+core::ffi::VaList<br />
+Box::into_non_null<br />
+Box::from_non_null<br />
+Vec::into_parts<br />
+Vec::from_parts<br />
+core::mem::size_of_val_raw<br />
+core::mem::align_of_val_raw<br />
+core::alloc::Layout::for_value_raw<br />
+String::from_utf8_lossy_owned<br />
+string::FromUtf8Error::into_utf8_lossy<br />
+FusedIterator for StepBy<I><br />
+std::fs::set_times<br />
+std::fs::set_times_nofollow</p>
+<br>
+<br>
+<h2 id="gita-byeongyeongjeom">기타 변경점</h2>
+<p>이외의 모든 변경사항은 각 <a rel="external" href="https://github.com/rust-lang/rust/releases/tag/1.99.0">Rust</a>, <a rel="external" href="https://doc.rust-lang.org/nightly/cargo/CHANGELOG.html#cargo-199-2026-10-01">Cargo</a>, <a rel="external" href="https://github.com/rust-lang/rust-clippy/blob/master/CHANGELOG.md#rust-199">Clippy</a> 페이지를 확인하세요.</p>
+<br>
+<br>
+<br>
+<h2 id="1-99-0yi-keonteuribyuteodeulege">1.99.0의 컨트리뷰터들에게</h2>
+<p>1.99.0의 완성엔 수많은 사람들이 함께했습니다. 전부 여러분이 없었다면 불가능했을 거에요.</p>
+<p><a rel="external" href="https://thanks.rust-lang.org/rust/1.99.0/">고마워요!</a></p>
+<br>
+<br>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224434395542/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>[k8s] 쿠버네티스와 OOMKill<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224374908106/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>Github ARC: 갑자기 runner가 증발한 문제<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>
