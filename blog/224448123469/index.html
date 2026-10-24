@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>LLM 연대기 | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224448123469/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="LLM 연대기">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224448123469/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-10-24T06:55:23.579276798+00:00">
+    <meta property="article:published_time" content="2026-10-20T11:19:42.686163+00:00">
+    <meta property="article:tag" content="LLM">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224448123469/">LLM 연대기</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-10-20T11:19:42.686163+00:00"><time datetime="2026-10-20T11:19:42.686163+00:00">2026.10.20</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="1386 words"><time datetime="PT7M">7 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/llm/">LLM</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224448123469" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p><img src="/images/img_35a1d867c86aa83d.jpg" alt="" />
+2026.10.20 작성</p>
+<p>역사를 기반으로 LLM에 대한 배경지식들을 정리해본다.<br />
+기술 자체에 초점을 맞추기보단, 환경을 이해하고 사용할 수 있을만한 내용 위주로 다져보겠다.</p>
+<br>
+<br>
+<br>
+<h2 id="baldan-2017">발단 (2017)</h2>
+<p>원래 인공지능은 기술발전이 한동안 지지부진한 분야였다.<br />
+논문은 옛날부터 계속 나왔는데, 그다지 의미있는 결과물이 없었다.</p>
+<p>그러다가 Transformer라는 구현 패턴이 나오면서 LLM이 본격적으로 등장한다. "Attention Is All You Need"라는 한번쯤 들어봤을만한 구호와 함께 말이다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/224155291489">https://blog.naver.com/sssang97/224155291489</a><br />
+이 매커니즘은 현재도 매우 중요하게 쓰이는 개념이다.<br />
+현존하는 모든 LLM은 이러한 논리에 입각해서 만들어지고 있다.</p>
+<br>
+<br>
+<br>
+<h2 id="chatgptyi-deungjang-2022">ChatGPT의 등장 (2022)</h2>
+<p>OpenAI라는 비영리법인이 출범해서 GPT 1-2 시리즈로 실험을 하다가, 채팅 서비스를 출시하면서 판도를 뒤엎었다. LLM이란 것을 최초로 쓸만하고 경제성이 있는 형태로 공개한 것이다.</p>
+<p>초기에는 간단한 상식이나 농담따먹기 정도로 소비되었으나, 어쨌든 이때부터 오랫동안 LLM 환경을 주도했다.</p>
+<br>
+<br>
+<br>
+<h2 id="rag-gaenyeomyi-daedu-2022">RAG 개념의 대두 (2022~)</h2>
+<p>이 당시 LLM에는 문제가 많았다. 딱 학습된 것 이상의 지식을 알지 못한다는 것이다.<br />
+이때 최초로 주목받은 개념이, RAG이라는 계층을 추가해서 LLM에 추가적인 지식&amp;맥락을 주입하자는 것이었다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/223949205819">https://blog.naver.com/sssang97/223949205819</a><br />
+DB를 쓰든, 그냥 텍스트를 미리 만들어서 박는 것을 RAG라고 부른다.<br />
+벡터DB들이 이 구조에 잘 맞다고 해서 벡터DB 붐이 크게 일기도 했다. 현재는 사그라든 것 같지만.</p>
+<p>이건 요즘에 들어서는 거의 가라앉은 개념이긴 하다.정말 내부적인 지식을 대규모로 주입할 경우에는 RAG가 유용할 수 있지만, 그 외에는 웹서치나 MCP를 쓰는 것이 더 일반적이다.</p>
+<br>
+<br>
+<br>
+<h2 id="llamawa-opeunmodelyi-deungjang-2023-02">LLama와 오픈모델의 등장 (2023.02~)</h2>
+<p>Meta가 이 시점에 큰일을 하나 했다. OpenAI가 독점하던 환경에 Meta가 도전장을 내민 것이다.<br />
+LLama라는 모델을 누구나 실행할 수 있게 풀어버리고, llama.cpp 같은 추론 환경 같은 것도 공개했다.<br />
+(LLama 1 2023.02, LLama 2 2023.07)</p>
+<p>이 덕분에 오픈모델들이 우후죽순 등장하고 Ollama(2023.07) 같은 오픈모델용 보조도구들도 나오기 시작했다.<br />
+딱 이 시기에 Mistral 같은 오픈모델 위주의 회사들이 등장했다.</p>
+<p>물론 이때는 성능이 구렸다. 25-26년 들어서야 성능이 프론티어급에 비비기 시작했지만, 아무튼 포문을 열어준 것만 해도 상당한 혁신이었다.</p>
+<p>하지만 이후 Meta는 muse를 내기 전까지 한 3년 동안 똥볼만 차게 된다.</p>
+<br>
+<br>
+<br>
+<h2 id="claudeyi-deungjang-2023-03">Claude의 등장 (2023.03)</h2>
+<p>이 무렵 또 한명의 신흥 강자가 등장했다.<br />
+OpenAI 탈주자들이 Anthropic이라는 회사를 세우고, "뛰어난 코딩 성능"으로 주목을 받기 시작한 것이다.</p>
+<p>이들은 초기에는 개발자 위주로만 주목을 받았지만, 25년 이후로는 뛰어난 범용 성능을 인정받아서 일반인들에게도 널리 쓰이게 된다.</p>
+<p>현 시점에서도 강력한 주인공 중 하나다.</p>
+<br>
+<br>
+<br>
+<h2 id="vllmgwa-goseongneung-llm-seobingyi-baljeon-2023-06">vLLM과 고성능 LLM 서빙의 발전 (2023.06)</h2>
+<p>이 무렵 LLM을 효율적으로 서비스하기 위한 기술들도 발전하기 시작했다.<br />
+UC Berkeley 연구진이 공개한 vLLM이 대표적인 사례다.</p>
+<p>기존에도 자체 GPU에서 LLM을 실행할 수는 있었지만, 여러 사용자의 요청을 동시에 처리하려면 상당한 자원이 필요했다. 특히 추론 과정에서 사용되는 리소스 사용이 비효율적이라 GPU 자원을 낭비하는 문제가 있었다.<br />
+vLLM은 몇가지 새로운 최적화 테크닉을 도입해서 문제를 해결했다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/224318182333">https://blog.naver.com/sssang97/224318182333</a><br />
+이를 통해 동일한 GPU 자원으로 훨씬 많은 요청을 처리할 수 있게 되었고, LLM을 직접 호스팅하는 비용도 줄일 수 있었다.</p>
+<p>이후 Continuous Batching을 비롯한 다양한 최적화 기술과 OpenAI 호환 API 등을 제공하면서 자체 LLM 서비스 구축을 위한 대표적인 추론 엔진 중 하나로 자리 잡았다.</p>
+<br>
+<br>
+<br>
+<h2 id="siseutem-tonghabgwa-eijeonteu-gaebal-bum-2023-2025">시스템 통합과 에이전트 개발 붐 (2023-2025)</h2>
+<p>모델 제공자들이 API를 제공하고 성능이 점차 강력해지기 시작하면서, 기존의 결정적인 기능으로 처리할 수 없는 요소들을 LLM으로 해결하려는 시도들이 나오기 시작했다.<br />
+LLM을 시스템에 통합해서 기능을 만들기 시작한 것이다.</p>
+<p>이에 따라 Langchain &amp; Langgraph 같은 LLM 기반의 개발 도구 &amp; 프레임워크들이 범람하기 시작했다. 상당수가 물로켓이긴 했지만.</p>
+<p>이 무렵 Multi Agent라는 개념도 등장했다. Agent를 역할별로 나누어서 개발하면 좀 더 비용과 성능효율적인 시스템을 구현할 수 있다는 것이다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/223884516216">https://blog.naver.com/sssang97/223884516216</a><br />
+이것도 모델 성능이 좋아지면서 빛이 좀 바래긴 했지만, 여전히 유효하다.</p>
+<br>
+<br>
+<br>
+<h2 id="google-gemini-debwi-2023-12">Google Gemini 데뷔 (2023.12)</h2>
+<p>이 무렵 전통의 강자 Google가 역작인 Gemini를 세상에 던지며 주인공이 되었다. Google Bard는 삭제됐다.</p>
+<p>Google의 가장 강력한 장점은 가성비였다. 하드웨어부터 소프트웨어 스택까지 모든 생산흐름을 본인이 직접 주도했기에, 단가를 저렴하게 뽑을 수 있었다.<br />
+성능이 아주 좋다고까지 할 수는 없었지만, 압도적인 가성비로 매우 오랫동안 압도적인 기술우위를 점유하고 있었다. Deepseek이 나오기 전까지 말이다.</p>
+<br>
+<br>
+<br>
+<h2 id="rijeuning-modelyi-deungjang-2024-09">리즈닝 모델의 등장 (2024.09)</h2>
+<p>OpenAI가 GPT-o1라는 모델을 내면서 리즈닝 모델이란 개념이 등장했다.<br />
+성능 천장을 뚫기 위한 트릭이다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/224329256927">https://blog.naver.com/sssang97/224329256927</a><br />
+사실 이건 대단한 혁신이라고 할 정도까진 아니다. 어려운 문제가 나오면 더 오랫동안 생각을 하게 만든 것이다.</p>
+<br>
+<br>
+<br>
+<h2 id="clinegwa-baibeu-koding-2024-10">Cline과 바이브 코딩 (2024.10)</h2>
+<p>이전에는 AI로 개발을 한다고 하면 Github Copilot 정도를 사용하는 것이 전부였다. 자동완성 정도 말이다.<br />
+하지만 VSCode에 Cline라는 플러그인이 나오면서 판도가 바뀌었다.<br />
+모델을 개발 도구에 붙여서 자율적으로 코드를 작성/수정하고 테스트까지도 할 수 있게 된 것이다.</p>
+<p>초기에는 아직 행동의 폭이 넓지 않았지만, 점차 기능을 확장하면서 바이브 코딩의 포문을 열었다.</p>
+<p>현재는 인기가 많이 떨어진 감이 있지만, 아무튼 핵심적인 트리거였다.</p>
+<p>먼저 출시한 cursor(2023.03)도 Cline의 영향을 받아 발전했고, 이후에도 Antigravity(2025.11.18), windsurf(2024.11.14) 같은 아류작들이 범람했다.</p>
+<br>
+<br>
+<br>
+<h2 id="mcpyi-deungjang-2024-11">MCP의 등장 (2024.11)</h2>
+<p>MCP가 나오기 전까지는 LLM에 외부 도구를 붙이는 것이 제한적이거나 불편했다.<br />
+기존에는 직접 에이전트를 개발할 때나 tool 같은걸 직접 구현해서 외부 리소스를 참조하게 할 수 있었는데, MCP가 나옴으로 인해서 그 제한이 해소된 것이다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/223827361065">https://blog.naver.com/sssang97/223827361065</a><br />
+MCP를 통해 LLM용 MCP 도구를 만들고 배포해서 모두가 사용할 수 있게 되었다.<br />
+별거 아니지만 꽤 중요한 국면이기도 했다.</p>
+<p>현재는 LLM 환경에서는 MCP가 HTTP 같은 기본 인터페이스로 자리잡았다.</p>
+<br>
+<br>
+<br>
+<h2 id="deepseek-syokeu-2025-01">DeepSeek 쇼크 (2025.01)</h2>
+<p>중국의 회사에서 DeepSeek-R1를 내면서 충격적인 데뷔를 했다.<br />
+고성능-저비용의 모델을 만들었는데, 더 놀라운건 그걸 오픈모델로 풀어버렸다는 것이다.</p>
+<p>이 무렵부터 오픈모델들이 강력한 경쟁력을 갖기 시작했고, 이에 비빌만한 중형-소형 모델들이 하나둘씩 나오기 시작했다.</p>
+<p>Deepseek은 현 시점에서도 매우 강력한 다크호스 중 하나다.</p>
+<br>
+<br>
+<br>
+<h2 id="claude-codeyi-deungjang-2025-02">Claude Code의 등장 (2025.02)</h2>
+<p>Claude가 이때부터 본격적으로 힘을 쓰기 시작했다.<br />
+본인들 모델 기반으로 개발이나 자율적인 행동을 해주는 CLI 기반 에이전트를 만들어서 뿌린 것이다.</p>
+<p>기본적인 원리는 Cline 같은 바이브 도구들과 크게 다르진 않으나, 좀더 최적화를 잘하고 행동의 폭을 넓혀서 순식간에 개발용 도구의 파이를 독점하는 지경에 이르렀다.</p>
+<p>OpenAI도 이를 따라잡기 위해 codex(2025.04)를 내서 맹추격하고 있는 중이다.<br />
+오픈소스 버전인  opencode(2025.06.19)도 나왔고, 다른 제공자들도 CLI 기반 에이전트 개발 도구를 흉내내서 내기 시작했다.</p>
+<p>Claude Code는 현 시점에서도 코딩 에이전트라는 환경에서는 압도적인 우위를 차지하고 있다.</p>
+<br>
+<br>
+<br>
+<h2 id="skillsyi-deungjang-2025-10">Skills의 등장 (2025.10)</h2>
+<p>이것도 MCP처럼 앤트로픽이 낸건데, MCP에 비해서는 임팩트가 적어서 묻힌 감은 있다.<br />
+<a rel="external" href="https://blog.naver.com/sssang97/224096244982">https://blog.naver.com/sssang97/224096244982</a><br />
+반복적으로 사용되는, 전문적인 요구사항이나 행동들을 모듈화해서 LLM에 설치할 수 있게 해주는 도구 및 도구에 대한 표준 인터페이스다.</p>
+<p>이것도 표준으로서 꽤 괜찮게 쓰이고 있다.</p>
+<br>
+<br>
+<br>
+<h2 id="openclawwa-haneseuyi-deungjang-2025-11">openclaw와 하네스의 등장 (2025.11)</h2>
+<p>이 무렵 바이브 코딩을 넘어선 무언가가 또 튀어나왔다.<br />
+이제는 코드만 작성하고 실행하는게 아니라, 거의 모든 행동을 AI에 맡겨버리자는 주장이 나온 것이다.</p>
+<p>보안문제로 매우 떠들썩했는데, 아무튼 이것도 안정적으로 안착한 개념 중 하나다.<br />
+현재도 이런저런 외부 기능(Slack, Github 등)과 연계해서 다양한 비결정적 기능을 구현할 때는 openclaw 같은 하네스를 쓰곤 한다.</p>
+<p>openclaw 외에도 hermes(2026.02.25) 같은 대체재들이 등장했다. 성격은 각기 조금씩 다른 편이다.</p>
+<br>
+<br>
+<br>
+<h2 id="opeun-junggug-modeldeulyi-daeyagjin-2026">오픈(중국) 모델들의 대약진 (2026)</h2>
+<p>Deepseek 이후에도 쟁쟁한 중국 회사들이 기깔난 모델을 뽑아내기 시작했다.</p>
+<p>zai는 GLM 5.2를 내면서(2026.06.16) 프론티어급 대형모델을 누구나 실행할 수 있는 시대를 열어줬다.<br />
+kimi k3(2026.07.17)도 GLM에 비빌만한 프론티어급 성능을 자랑했고, 그 뒤로도 mimo, qwen 등 쟁쟁한 모델들이 뒤를 따라오고 있다.</p>
+<br>
+<br>
+<br>
+<h2 id="opeunmodel-daeyuhaeng-2026">오픈모델 대유행 (2026)</h2>
+<p>오픈웨이트 모델 중에서도 대형모델과 중소규모 모델들이 크게 발전하면서 AI 모델을 직접 띄워서 실행하는 것이 하나의 흐름이 되었다.</p>
+<p>고가-고성능의 GPU를 대량으로 운영할 수 있는 경우에는 GLM 같은 대형모델을 굴려서 업무용으로 쓰기도 하고, 적당히 성능 좋은 GPU나 고성능 맥북이 있는 경우에는 중소형 모델들을 가볍게 띄워서 쓰기도 한다.</p>
+<p>초기에는 gemma vs qwen 양자 구도였다가 gemma는 거의 탈락한 모양새인 것 같다.</p>
+<br>
+<br>
+<br>
+<h2 id="claude-fablegwa-hodeulgab-daejanci-2026-06">Claude Fable과 호들갑 대잔치 (2026.06)</h2>
+<p>앤트로픽에서 Fable을 출시하면서(사실은 전부터) 온갖 호들갑을 터뜨리기 시작했다.<br />
+진지하게 AI의 위협과 보안 위험을 고민하고, 정부가 간섭하고, 도구에 제한까지 넣기까지 시작한 것이다.</p>
+<p>아무튼 Fable의 등장 이후 AI 성능의 고점이 매우 높아진 것은 맞다. 이후에 바로 양자화를 때려서 좀 추락하긴 했다만...<br />
+GPT에서도 Astra를 내면서 따라가려고 노력을 하고 있다.</p>
+<br>
+<br>
+<br>
+<h2 id="jevwa-yisagyeoljeong-modelyi-daedu-2026-09">jev와 의사결정 모델의 대두 (2026.09)</h2>
+<p>어느 순간 Typesafe라는 신예가 갑자기 튀어나왔다.<br />
+"굳이 텍스트로 반환해줘야 하는가?"라는 발상의 전환으로 만들어진 모델의 한가지 형태다. 에이전트나 워크플로를 만들 때에만 사용할 수 있다.</p>
+<p>기존 LLM들은 텍스트-&gt;텍스트라서, 시스템 구현에 넣을 때는 응답을 JSON로 출력하도록 강요하는 사용 패턴이 매우 흔했다. 근데 문제는 JSON으로 강요를 하는 것 자체가 품질이나 비용을 떨어뜨리는 요인이고, 심지어 종종 어길 때가 있다는 것이었다.</p>
+<p>jev는 다시 과거의 전통적인 AI 모델의 접근법으로 회귀해서 이 문제를 최적화했다.<br />
+무언가 물어보거나 확인해달라고 하면, 텍스트로 응답을 주는 것이 아니라 선택값이나 확률값만을 주는 것이다.그래서 분기를 치거나 하는 고정적인 값 형태가 필요한 경우에는 훨씬 사용하기 적합하고, 비용적으로 효율적이기까지 하다.</p>
+<p>이 글을 쓰는 시점에서, jev를 사용해도 되는 사용 패턴이라면 jev를 쓰는 것이 압도적으로 저렴하다.</p>
+<br>
+<br>
+<br>
+<h2 id="musewa-metayi-buhwal-2026-10">muse와 Meta의 부활 (2026.10)</h2>
+<p>LLama 성능이 구려서 맥을 못추다가 muse라는 모델과 에이전트 도구를 던지면서 다시 무대에 등장했다.<br />
+기존 모델들을 뒤엎을 정도까진 아니지만, 준수한 성능과 도구 완성도로 주목받기 시작했다. 코딩도 꽤 하긴 한다는데, 더 지켜봐야 할 것 같다.</p>
+<br>
+<br>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224449293262/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>opencode - 오픈소스 코딩 에이전트<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224444836209/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>Claude Code 팀의 코드리뷰.link<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>
