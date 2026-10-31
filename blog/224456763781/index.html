@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src-attr 'unsafe-inline'">
+
+    <title>[RouterOS] IP 관리 기본 | myyrakle&#x27;s note</title>
+
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://myyrakle.github.io/fonts/FiraCode-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/style.css?h=a09fbcf90ec2cd08d818">
+    <link rel="stylesheet" href="https://myyrakle.github.io/css/search-overlay.css?h=a4a8c5280e7bef46b390">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+    <script src="https://myyrakle.github.io/js/auto-close-popover-on-resize.js?h=4ef87d6fc7b98b22e044" defer></script>
+    <script src="https://myyrakle.github.io/js/search-overlay.js?h=7e7e8703f923d30cb94e" defer></script>
+    <script src="https://myyrakle.github.io/js/copy-code-to-clipboard.js?h=6eec6d5a29e934c1de32" defer></script>
+
+    <link rel="canonical" href="https://myyrakle.github.io/blog/224456763781/">
+    <link rel="alternate" type="application/atom+xml" href="https://myyrakle.github.io/atom.xml" title="myyrakle's note">
+    
+    <meta name="author" content="myyrakle">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#211f1a">
+    <meta name="color-scheme" content="dark">
+
+    <meta property="og:title" content="[RouterOS] IP 관리 기본">
+    <meta property="og:type" content="article">
+    
+    <meta property="og:image" content="https:&#x2F;&#x2F;myyrakle.github.io/images/myyrakle.png">
+    <meta name="twitter:card" content="summary"><meta property="og:url" content="https://myyrakle.github.io/blog/224456763781/">
+    <meta property="og:description" content="dev blog">
+    <meta property="og:site_name" content="myyrakle&#x27;s note">
+    <meta property="og:updated_time" content="2026-10-31T10:55:37.162510562+00:00">
+    <meta property="article:published_time" content="2026-10-28T07:09:42.782394+00:00">
+    <meta property="article:tag" content="네트워크&#x2F;웹">
+
+</head>
+
+<body class="layout-center" data-theme="terminus">
+    <header class="header">
+        <div class="header-container">
+            <span class="header-logo-container">
+                <a href="https://myyrakle.github.io">
+                    <span class="logo">myyrakle's note</span>
+                </a>
+            </span>
+            <button class="search-open-button" type="button" aria-label="Open search" data-search-open>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m16.5 16.5 4.5 4.5"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="main-menu" aria-label="Main Menu">
+            <a class="skip-to-content" href="#main">Skip to main content</a>
+            <button class="main-menu-dropdown-button" popovertarget="nav-menu">Menu</button>
+            <ul id="nav-menu" class="main-menu-items" aria-label="Site Navigation" popover>
+                <li><a href="https://myyrakle.github.io/blog/">blog</a></li>
+                <li><a href="https://myyrakle.github.io/tags/">tags</a></li>
+                <li><a href="https://blog.naver.com/sssang97">naver</a></li>
+                <li><a href="https://github.com/myyrakle">github</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main">
+        <article class="post content">
+            <header>
+                <h1 class="post-title">
+                    <a href="https://myyrakle.github.io/blog/224456763781/">[RouterOS] IP 관리 기본</a>
+                </h1>
+                <ul class="post-meta hidden">
+                    <li title="Published on 2026-10-28T07:09:42.782394+00:00"><time datetime="2026-10-28T07:09:42.782394+00:00">2026.10.28</time></li>
+                    <li role="separator" aria-hidden="true">::</li>
+                    <li title="245 words"><time datetime="PT2M">2 min</time> read</li>
+                </ul>
+                <div class="post-tags">
+                    <span>#<a rel="tag" href="https://myyrakle.github.io/tags/neteuweokeu-web/">네트워크&#x2F;웹</a></span>
+                </div>
+            </header>
+<div style="margin-bottom: 1.5em;">
+    <a href="https://blog.naver.com/sssang97/224456763781" target="_blank" rel="noopener">[원본 링크]</a>
+</div>
+
+<p>RouterOS는 UI 기반 콘솔도 잘 지원하지만, 설정작업들은 CLI로 하는 것이 편리하다.<br />
+CLI 명령 위주로 해서, IP 추가, IP 고정, 포트포워딩 정도의 일반적인 작업만 정리한다.</p>
+<br>
+<br>
+<br>
+<h2 id="wan-cuga">WAN 추가</h2>
+<p>회선에 IP 여유분이 있다면, 요청하는 만큼 추가 IP를 받아올 수 있다.<br />
+그러려면 인터페이스와 DHCP Client를 할당해주면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span style="color: #94E2D5;">/</span><span>interface</span><span style="color: #94E2D5;">/</span><span>macvlan add name</span><span style="color: #94E2D5;">=</span><span>wan이름 interface</span><span style="color: #94E2D5;">=</span><span>ether1 mode</span><span style="color: #94E2D5;">=</span><span>private</span></span>
+<span class="giallo-l"><span style="color: #94E2D5;">/</span><span>ip</span><span style="color: #94E2D5;">/</span><span>dhcp</span><span style="color: #94E2D5;">-</span><span>client add interface</span><span style="color: #94E2D5;">=</span><span>wan이름 add</span><span style="color: #94E2D5;">-</span><span style="color: #CBA6F7;">default</span><span style="color: #94E2D5;">-</span><span>route</span><span style="color: #94E2D5;">=</span><span>no use</span><span style="color: #94E2D5;">-</span><span>peer</span><span style="color: #94E2D5;">-</span><span>dns</span><span style="color: #94E2D5;">=</span><span>no disabled</span><span style="color: #94E2D5;">=</span><span>no</span></span></code></pre>
+<p><img src="/images/img_be03b5f70ea38f3f.png" alt="" /></p>
+<p>WAN - IP 목록은 다음 명령으로 확인할 수 있다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span style="color: #94E2D5;">/</span><span>ip dhcp</span><span style="color: #94E2D5;">-</span><span>client print detail</span></span></code></pre>
+<p><img src="/images/img_f7b9cb560e118145.png" alt="" /></p>
+<p>UI에서는 IP - DHCP client 탭에서 확인 가능</p>
+<p><img src="/images/img_7607d5395dcd87c5.png" alt="" /></p>
+<br>
+<br>
+<br>
+<h2 id="poteupoweodinghagi">포트포워딩하기</h2>
+<p>방화벽/NAT 수준에서 제어한다.<br />
+다음과 같이 설정할 수 있다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span style="color: #94E2D5;">/</span><span>ip</span><span style="color: #94E2D5;">/</span><span>firewall</span><span style="color: #94E2D5;">/</span><span>nat</span></span>
+<span class="giallo-l"><span>add chain</span><span style="color: #94E2D5;">=</span><span>dstnat \</span></span>
+<span class="giallo-l"><span style="color: #CBA6F7;">    in</span><span style="color: #94E2D5;">-</span><span>interface</span><span style="color: #94E2D5;">=</span><span>나갈인터페이스 \</span></span>
+<span class="giallo-l"><span>    protocol</span><span style="color: #94E2D5;">=</span><span>tcp \</span></span>
+<span class="giallo-l"><span>    dst</span><span style="color: #94E2D5;">-</span><span>port</span><span style="color: #94E2D5;">=</span><span>외부포트 \</span></span>
+<span class="giallo-l"><span>    action</span><span style="color: #94E2D5;">=</span><span>dst</span><span style="color: #94E2D5;">-</span><span>nat \</span></span>
+<span class="giallo-l"><span>    to</span><span style="color: #94E2D5;">-</span><span>addresses</span><span style="color: #94E2D5;">=</span><span>내부주소 \</span></span>
+<span class="giallo-l"><span>    to</span><span style="color: #94E2D5;">-</span><span>ports</span><span style="color: #94E2D5;">=</span><span>내부포트 \</span></span>
+<span class="giallo-l"><span>    comment</span><span style="color: #94E2D5;">=</span><span style="color: #A6E3A1;">&quot;port forwarding&quot;</span></span></code></pre>
+<p><img src="/images/img_fbe2acd91173e1ea.png" alt="" /></p>
+<p><img src="/images/img_955cf472bb71bdab.png" alt="" />
+추가하면 이렇게 행이 추가되고, 외부접속도 바로 열릴 것이다.</p>
+<br>
+<br>
+<h4 id="poteupoweoding-heeopin">포트포워딩 - 헤어핀</h4>
+<p>근데 저렇게 하면 외부에서 접속하는건 되는데, 내부에서 외부 IP로 접속하는건 또 안된다.<br />
+이걸 허용해주려면 이른바 "헤어핀"이라고 하는 접속 경로를 뚫어줘야 한다.</p>
+<p>어렵진 않다. 다음과 같이 리소스 2개만 추가해주면 된다.</p>
+<pre class="giallo" style="color: #CDD6F4; background-color: #1E1E2E;"><code data-lang="javascript"><span class="giallo-l"><span style="color: #94E2D5;">/</span><span>ip firewall nat</span></span>
+<span class="giallo-l"><span>add chain</span><span style="color: #94E2D5;">=</span><span>dstnat src</span><span style="color: #94E2D5;">-</span><span>address</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">24</span><span> dst</span><span style="color: #94E2D5;">-</span><span>address</span><span style="color: #94E2D5;">-</span><span>type</span><span style="color: #94E2D5;">=</span><span>local protocol</span><span style="color: #94E2D5;">=</span><span>tcp dst</span><span style="color: #94E2D5;">-</span><span>port</span><span style="color: #94E2D5;">=</span><span>내부포트 \</span></span>
+<span class="giallo-l"><span>    action</span><span style="color: #94E2D5;">=</span><span>dst</span><span style="color: #94E2D5;">-</span><span>nat to</span><span style="color: #94E2D5;">-</span><span>addresses</span><span style="color: #94E2D5;">=</span><span>내부IP to</span><span style="color: #94E2D5;">-</span><span>ports</span><span style="color: #94E2D5;">=</span><span>외부포트 \</span></span>
+<span class="giallo-l"><span>    comment</span><span style="color: #94E2D5;">=</span><span style="color: #A6E3A1;">&quot;wan-proxy hairpin dstnat&quot;</span><span> place</span><span style="color: #94E2D5;">-</span><span>before</span><span style="color: #94E2D5;">=</span><span>[find comment</span><span style="color: #94E2D5;">=</span><span style="color: #A6E3A1;">&quot;wan-proxy inbound&quot;</span><span>]</span></span>
+<span class="giallo-l"><span>add chain</span><span style="color: #94E2D5;">=</span><span>srcnat src</span><span style="color: #94E2D5;">-</span><span>address</span><span style="color: #94E2D5;">=</span><span style="color: #FAB387;">192.168</span><span style="color: #94E2D5;">.</span><span style="color: #FAB387;">88.0</span><span style="color: #94E2D5;">/</span><span style="color: #FAB387;">24</span><span> dst</span><span style="color: #94E2D5;">-</span><span>address</span><span style="color: #94E2D5;">=</span><span>내부IP protocol</span><span style="color: #94E2D5;">=</span><span>tcp dst</span><span style="color: #94E2D5;">-</span><span>port</span><span style="color: #94E2D5;">=</span><span>내부포트 \</span></span>
+<span class="giallo-l"><span>    action</span><span style="color: #94E2D5;">=</span><span>masquerade comment</span><span style="color: #94E2D5;">=</span><span style="color: #A6E3A1;">&quot;wan-proxy hairpin srcnat&quot;</span></span></code></pre><br>
+<br>
+<br>
+<h2 id="dhcp-gwanri-naebu-ip-gojeong-byeongyeong">DHCP 관리 - 내부 IP 고정 &amp; 변경</h2>
+<p>서버로 사용되는 장비가 있다면 내부 IP의 관리도 중요해진다.<br />
+결국 내부 IP를 통해서 내부 통신이나 포트포워딩 등이 이뤄지는 것이기 때문이다.</p>
+<p>DHCP Server / Lease 탭에서 조정 가능하다.</p>
+<p><img src="/images/img_03fd184ac60377da.png" alt="" /></p>
+<p>먼저 Make Static 버튼을 눌러서 해당 맥주소의 Lease를 고정한다.</p>
+<p><img src="/images/img_d7291817a092d1a7.png" alt="" /></p>
+<p>그리고 Lease 상세에 들어가서 주소를 임의로 변경하면 끝이다.</p>
+<p><img src="/images/img_0cac8694e298ae08.png" alt="" />
+간단하다.</p>
+<br>
+<br>
+<br>
+<h2 id="dhcp-jadong-haldang-beomwi-jeeo">DHCP - 자동 할당 범위 제어</h2>
+<p>라우터를 여러 용도로 사용한다면 내부 주소 할당 규칙을 바꾸고 싶을 수 있다. 따로 설정하지 않는다면 전체 IP 목록에서 라우터가 랜덤으로 배정을 해주기 때문이다.</p>
+<p>특정 주소 영역을 미리 예약해두려면, Pool 설정에 들어가서 범위를 조절해주면 된다.</p>
+<p><img src="/images/img_b663e2f3dd02584e.png" alt="" /></p>
+<p><img src="/images/img_8724e6334d6e88e0.png" alt="" />
+쉽다.</p>
+<br>
+<br>
+<p>참조<br />
+<a rel="external" href="https://help.mikrotik.com/docs">https://help.mikrotik.com/docs</a></p>
+
+        </article>
+        <nav class="post-navigation">
+            <header class="post-navigation-title">
+                <h2>Read More Posts</h2>
+                <hr>
+            </header>
+            <div class="post-navigation-buttons">
+                <a rel="next" href="https://myyrakle.github.io/blog/224457089247/" aria-label="Next article">
+                    <span aria-hidden="true">&lt;&nbsp;[</span>Python JIT 포기선언.link<span aria-hidden="true">]</span>
+                </a>
+                <span aria-hidden="true" role="separator">::</span>
+                <a rel="prev" href="https://myyrakle.github.io/blog/224456728829/" aria-label="Prev article">
+                    <span aria-hidden="true">[</span>Zig의 4개월.link<span aria-hidden="true">]&nbsp;&gt;</span>
+                </a>
+            </div>
+        </nav>
+    </main>
+    <footer class="footer">
+        <address class="socials">
+            <ul>
+                <li>
+                    <a class="social-link" href="https://myyrakle.github.io/atom.xml" title="atom feed" aria-label="atom feed">
+                        <svg role="img" aria-label="feed icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/atom.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a class="social-link" rel="me" href="https://github.com/myyrakle" title="github" aria-label="github">
+                        <svg role="img" aria-label="github icon">
+                            <use aria-hidden="true" href="https://myyrakle.github.io/images/social_icons/github.svg#icon" />
+                        </svg>
+                    </a>
+                </li>
+            </ul>
+        </address>
+        <p class="copyright">
+            <span>© <time>2026</time> myyrakle</span>
+            <span>Powered by <a rel="external" href="https://www.getzola.org">Zola</a></span>
+            <span>Theme by <a rel="external" href="https://eyalkalderon.com">ebkalderon</a></span>
+        </p>
+    </footer>
+    <dialog class="search-overlay" data-search-dialog aria-label="Search posts">
+    <div class="search-overlay-frame">
+        <div class="search-overlay-header">
+            <h2>Search</h2>
+            <button class="search-close-button" type="button" aria-label="Close search" data-search-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div
+            class="search-overlay-body zola-search"
+            data-search-root
+            data-search-index-url="/search_index.ko.json"
+            data-search-library-url="/elasticlunr.min.js"
+        >
+            <form class="zola-search-form" data-search-form role="search">
+                <input class="zola-search-input" data-search-input type="search" placeholder="Search posts" autocomplete="off" spellcheck="false">
+            </form>
+            <p class="zola-search-summary" data-search-summary>Type to search posts.</p>
+            <ol class="zola-search-results" data-search-results></ol>
+        </div>
+    </div>
+</dialog>
+
+</body>
+
+</html>
